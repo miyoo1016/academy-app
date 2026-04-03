@@ -17,14 +17,13 @@ ORANGE= "#C85000"
 RED   = "#A31515"
 
 def grade_info(score):
-    if score >= 95: return "S", GOLD,   "최우수"
-    if score >= 90: return "A+","#1A5276","우수"
-    if score >= 85: return "A", "#1A5276","우수"
-    if score >= 80: return "B+","#1B6B3A","양호"
-    if score >= 75: return "B", "#1B6B3A","양호"
-    if score >= 70: return "C+","#C85000","보통"
-    if score >= 65: return "C", "#C85000","보통"
-    return "D", "#A31515", "보완 필요"
+    """등급 (표시명, 색상) — 부정적 표현 완전 제거"""
+    if score >= 95: return "최우수", GOLD
+    if score >= 90: return "우수",   "#1A5276"
+    if score >= 85: return "우수",   "#1A5276"
+    if score >= 80: return "양호",   "#1B6B3A"
+    if score >= 75: return "양호",   "#1B6B3A"
+    return "성장중", "#5D7A8C"  # 낮은 점수도 긍정적 표현
 
 # ═══════════════════════════════════════════════════════
 # 페이지 설정 & 전역 CSS
@@ -274,6 +273,12 @@ with tab_preview:
             f"이전 단원 연계 복습을 병행할 예정입니다. "
             f"정기적인 오답 노트 정리와 가정 내 15~20분 복습 루틴을 함께 유지해 주시면 "
             f"더욱 안정적인 성적 향상을 기대할 수 있습니다.")
+
+        # ── 시험지 분석 결과가 있으면 2문단에 통합 ──
+        if d.get("exam_analysis"):
+            exam_txt = d["exam_analysis"]
+            p2 = (p2 + f"\n\n업로드된 시험지를 문항별로 분석한 결과: {exam_txt}")
+
         return f"{p1}\n\n{p2}\n\n{p3}"
 
     def claude_ai_comment(d):
@@ -303,7 +308,7 @@ with tab_preview:
 - 과도한 미사여구 없이 팩트 기반 교육 컨설턴트 톤 (~했습니다, ~할 예정입니다)
 - 필수 3문단 구조:
   1문단(단원 연계성): 이번 달 단원의 핵심 개념 + 중·고등 연계성 (4~5줄)
-  2문단(정밀 관찰): 시험지 분석 결과의 맞은/틀린 문항 특징, 오답 패턴, 풀이 습관을 구체적 수치와 함께 서술 (5~6줄)
+  2문단(정밀 관찰): 반드시 위 [시험지 문항별 분석 결과]를 인용하여, 맞은 문항의 공통 특징, 틀린 문항의 오답 패턴, 풀이 습관을 구체적으로 서술 (시험지 분석 없으면 점수·지표 데이터 기반 서술) (5~6줄)
   3문단(로드맵): 다음 달 진도 계획 + 가정 연계 학습 제안 (3~4줄)
 
 JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
@@ -340,8 +345,7 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
             if v>=90:   colors.append(GOLD)
             elif v>=80: colors.append("#2471A3")
             elif v>=70: colors.append(GREEN)
-            elif v>=60: colors.append(ORANGE)
-            else:       colors.append(RED)
+            else:       colors.append(SILVER)   # 낮아도 중립 색상
 
         fig=go.Figure()
         fig.add_trace(go.Bar(
@@ -475,44 +479,54 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
     # [FIX 4] 프리미엄 미리보기 레이아웃
     # ═══════════════════════════════════════════════════
     diff=d["student_score"]-d["class_avg"]
-    sign="+" if diff>=0 else ""
-    glv,gcol,gtxt=grade_info(d["student_score"])
+    glv,gcol=grade_info(d["student_score"])
+    best_metric = max(d["metrics"], key=d["metrics"].get)
+    best_score  = d["metrics"][best_metric]
 
-    # 배너
+    # 배너 — 학원명은 별도 줄로, 등급 배지는 우측 배치
     st.markdown(f"""
 <div style="background:linear-gradient(135deg,{NAVY},{NAVY2});
-     border-radius:14px;padding:24px 30px;margin-bottom:20px;
+     border-radius:14px;padding:22px 28px;margin-bottom:20px;
      border-left:6px solid {GOLD};">
-  <div style="font-size:11px;color:{GOLD2};letter-spacing:3px;margin-bottom:6px;
-              font-family:'Noto Serif KR'">
-    {d['academy_name'].upper()} · {d['class_name']} · {d['report_month']} 월간 성적표
-  </div>
-  <div style="font-size:26px;font-weight:900;color:white;
-              font-family:'Noto Serif KR';letter-spacing:-0.5px">
-    {d['student_name']} 학생 &nbsp;
-    <span style="background:{gcol};color:white;font-size:16px;padding:4px 14px;
-                 border-radius:20px;font-family:'Noto Sans KR'">
-      {glv} 등급 · {gtxt}
-    </span>
-  </div>
-  <div style="margin-top:8px;font-size:13px;color:{GOLD2};opacity:.9">
-    {d['student_school']} | {d['student_grade']} | 담당: {d['teacher_name']}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div style="font-size:11px;color:{GOLD2};letter-spacing:2px;margin-bottom:6px;">
+        {d['academy_name']} · {d['class_name']} · {d['report_month']} 월간 성적표
+      </div>
+      <div style="font-size:26px;font-weight:900;color:white;font-family:'Noto Serif KR';">
+        {d['student_name']} 학생
+      </div>
+      <div style="margin-top:7px;font-size:13px;color:{GOLD2};opacity:.9;">
+        {d['student_school']} | {d['student_grade']} | 담당: {d['teacher_name']}
+      </div>
+    </div>
+    <div style="text-align:center;background:rgba(255,255,255,0.12);
+                border-radius:12px;padding:14px 20px;border:1px solid {GOLD}55;">
+      <div style="font-size:10px;color:{GOLD2};margin-bottom:4px;letter-spacing:1px;">이번 달 등급</div>
+      <div style="font-size:22px;font-weight:900;color:{GOLD};">{glv}</div>
+    </div>
   </div>
 </div>""", unsafe_allow_html=True)
 
-    # 요약 카드 3개
+    # 요약 카드 3개 — 음수 편차 숨김, 대신 최고 영역 표시
     c1,c2,c3=st.columns(3)
-    for col,lbl,val,clr in [
-        (c1,"학생 종합 점수",f"{d['student_score']:.1f}점",NAVY),
-        (c2,"해당 과정 평균",f"{d['class_avg']:.1f}점","#546e7a"),
-        (c3,"성취도 편차",f"{sign}{diff:.1f}점",NAVY2 if diff>=0 else RED)]:
+    cards=[
+        (c1,"학생 종합 점수",f"{d['student_score']:.1f}점", NAVY),
+        (c2,"이번 달 반 평균",f"{d['class_avg']:.1f}점",     "#546e7a"),
+        (c3,f"최고 강점 영역",  f"{best_metric}\n{best_score}점", GOLD),
+    ]
+    for col,lbl,val,clr in cards:
         with col:
             with st.container(border=True):
+                parts=val.split("\n")
+                main_val=parts[0]
+                sub_val=parts[1] if len(parts)>1 else ""
                 st.markdown(f"""
 <div style="text-align:center;padding:8px 0">
-  <div style="font-size:11px;color:#888;margin-bottom:6px;letter-spacing:1px">{lbl}</div>
-  <div style="font-size:38px;font-weight:900;color:{clr};
-              font-family:'Noto Serif KR'">{val}</div>
+  <div style="font-size:11px;color:#888;margin-bottom:6px;letter-spacing:.5px">{lbl}</div>
+  <div style="font-size:{'28px' if sub_val else '38px'};font-weight:900;color:{clr};
+              font-family:'Noto Serif KR';line-height:1.2">{main_val}</div>
+  {"<div style='font-size:15px;font-weight:700;color:"+clr+";margin-top:2px'>"+sub_val+"</div>" if sub_val else ""}
 </div>""",unsafe_allow_html=True)
 
     st.markdown("")
@@ -542,7 +556,7 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
         badges=""
         for lbl,val in d["metrics"].items():
             cls=("b-gold" if val>=90 else "b-blue" if val>=80
-                 else "b-green" if val>=70 else "b-orange" if val>=60 else "b-red")
+                 else "b-green" if val>=70 else "b-orange")   # 하위도 orange(중립)
             badges+=f'<span class="badge {cls}">{lbl} &nbsp;<b>{val}점</b></span>'
         st.markdown(badges,unsafe_allow_html=True)
 
@@ -579,18 +593,18 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
                                                    config={"displayModeBar":False})
 
         diff  = d["student_score"]-d["class_avg"]
-        sign  = "+" if diff>=0 else ""
-        dc    = NAVY2 if diff>=0 else RED
-        glv,gcol,gtxt = grade_info(d["student_score"])
+        glv,gcol = grade_info(d["student_score"])
+        best_m = max(d["metrics"], key=d["metrics"].get)
+        best_s = d["metrics"][best_m]
 
         rows=""
         for lbl,val in d["metrics"].items():
             filled=int(val/100*20)
             bar="■"*filled+"□"*(20-filled)
-            grd=("S급 우수" if val>=90 else "A급 양호" if val>=80
-                 else "B급 보통" if val>=70 else "C급 보완" if val>=60 else "D급 미흡")
+            grd=("최우수" if val>=90 else "우수" if val>=80
+                 else "양호" if val>=70 else "성장중")
             gc=(GOLD if val>=90 else "#1A5276" if val>=80
-                else GREEN if val>=70 else ORANGE if val>=60 else RED)
+                else GREEN if val>=70 else SILVER)
             rows+=(f"<tr>"
                    f"<td style='padding:9px 16px;font-weight:700;color:{NAVY};width:130px'>{lbl}</td>"
                    f"<td style='padding:9px 16px;font-size:11px;color:#aaa;letter-spacing:-0.5px;font-family:monospace'>{bar}</td>"
@@ -707,12 +721,17 @@ table.mt tr:nth-child(even){{background:#F4F6FC}}
 
 <!-- ═══ PAGE 1: 점수 요약 + 막대차트 + 지표표 ═══ -->
 <div class="page">
-  <div class="hdr">
-    <div class="ac">{d['academy_name']} · {d['class_name']} · {d['report_month']} 월간 성적표</div>
-    <div class="ti">{d['student_name']} 학생 학업 성취 리포트
-      <span class="grade-badge">{glv}등급 · {gtxt}</span>
+  <div class="hdr" style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div class="ac">{d['academy_name']} · {d['class_name']} · {d['report_month']} 월간 성적표</div>
+      <div class="ti">{d['student_name']} 학생 학업 성취 리포트</div>
+      <div class="sub">{d['student_school']} | {d['student_grade']} | 담당: {d['teacher_name']}</div>
     </div>
-    <div class="sub">{d['student_school']} | {d['student_grade']} | 담당: {d['teacher_name']}</div>
+    <div style="text-align:center;background:rgba(255,255,255,0.12);
+                border-radius:10px;padding:12px 18px;border:1px solid {GOLD}55;min-width:80px;">
+      <div style="font-size:9pt;color:{GOLD2};margin-bottom:4px;">이번 달 등급</div>
+      <div style="font-size:20pt;font-weight:900;color:{GOLD};">{glv}</div>
+    </div>
   </div>
 
   <div class="srow">
@@ -721,12 +740,13 @@ table.mt tr:nth-child(even){{background:#F4F6FC}}
       <div class="vl" style="color:{NAVY}">{d['student_score']:.1f}점</div>
     </div>
     <div class="sbox">
-      <div class="lb">해당 과정 평균</div>
+      <div class="lb">이번 달 반 평균</div>
       <div class="vl" style="color:#546e7a">{d['class_avg']:.1f}점</div>
     </div>
     <div class="sbox">
-      <div class="lb">성취도 편차</div>
-      <div class="vl" style="color:{dc}">{sign}{diff:.1f}점</div>
+      <div class="lb">최고 강점 영역</div>
+      <div style="font-size:13pt;font-weight:900;color:{GOLD};margin-top:4px;line-height:1.3">
+        {best_m}<br><span style="font-size:16pt">{best_s}점</span></div>
     </div>
     <div class="sbox">
       <div class="lb">학습 단원</div>
