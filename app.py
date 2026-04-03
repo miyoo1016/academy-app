@@ -441,12 +441,20 @@ JSON이나 코드 없이 순수 텍스트 3문단만 출력하십시오."""})
 
     # ── 다운로드 ────────────────────────────
     def build_html(d, comment):
-        bar_h   = make_bar(d).to_html(full_html=False, include_plotlyjs="cdn",
-                                       config={"displayModeBar": False})
-        radar_h = make_radar(d).to_html(full_html=False, include_plotlyjs=False,
-                                         config={"displayModeBar": False})
-        trend_h = make_trend(d).to_html(full_html=False, include_plotlyjs=False,
-                                         config={"displayModeBar": False})
+        # ── HTML 전용: width 고정으로 flex 넘침 방지 ──
+        def _fix_width(fig, w, h):
+            fig.update_layout(width=w, height=h, autosize=False)
+            return fig
+
+        bar_h   = _fix_width(make_bar(d),   650, 320).to_html(
+                      full_html=False, include_plotlyjs="cdn",
+                      config={"displayModeBar": False})
+        radar_h = _fix_width(make_radar(d), 310, 290).to_html(
+                      full_html=False, include_plotlyjs=False,
+                      config={"displayModeBar": False})
+        trend_h = _fix_width(make_trend(d), 310, 260).to_html(
+                      full_html=False, include_plotlyjs=False,
+                      config={"displayModeBar": False})
 
         diff   = d["student_score"] - d["class_avg"]
         sign   = "+" if diff >= 0 else ""
@@ -553,14 +561,14 @@ table.mt tr:nth-child(even) {{ background:#f5f7ff; }}
     <div class="ti">{d['student_name']} 학생 — 역량 분석 & 성장 추이</div>
     <div class="su">학습 단원: {d['subject']}</div>
   </div>
-  <div style="display:flex;gap:18px;align-items:flex-start">
-    <div style="flex:1;min-width:0">
+  <div style="display:table;width:100%;table-layout:fixed;border-spacing:16px 0">
+    <div style="display:table-cell;width:50%;vertical-align:top">
       <div class="sec">🕸️ 영역별 역량 분포</div>
-      <div style="height:300px">{radar_h}</div>
+      <div style="overflow:hidden">{radar_h}</div>
     </div>
-    <div style="flex:1;min-width:0">
+    <div style="display:table-cell;width:50%;vertical-align:top">
       <div class="sec">📈 분기별 성적 추이</div>
-      <div style="height:300px">{trend_h}</div>
+      <div style="overflow:hidden">{trend_h}</div>
     </div>
   </div>
   <div class="sec" style="margin-top:16px">📝 교육 전문가 심층 진단</div>
