@@ -446,13 +446,15 @@ JSON이나 코드 없이 순수 텍스트 3문단만 출력하십시오."""})
             fig.update_layout(width=w, height=h, autosize=False)
             return fig
 
-        bar_h   = _fix_width(make_bar(d),   650, 320).to_html(
+        # A4 콘텐츠 폭 = 210mm - 34mm 여백 ≈ 640px
+        FULL_W = 640
+        bar_h   = _fix_width(make_bar(d),   FULL_W, 300).to_html(
                       full_html=False, include_plotlyjs="cdn",
                       config={"displayModeBar": False})
-        radar_h = _fix_width(make_radar(d), 310, 290).to_html(
+        radar_h = _fix_width(make_radar(d), FULL_W, 270).to_html(
                       full_html=False, include_plotlyjs=False,
                       config={"displayModeBar": False})
-        trend_h = _fix_width(make_trend(d), 310, 260).to_html(
+        trend_h = _fix_width(make_trend(d), FULL_W, 230).to_html(
                       full_html=False, include_plotlyjs=False,
                       config={"displayModeBar": False})
 
@@ -561,20 +563,25 @@ table.mt tr:nth-child(even) {{ background:#f5f7ff; }}
     <div class="ti">{d['student_name']} 학생 — 역량 분석 & 성장 추이</div>
     <div class="su">학습 단원: {d['subject']}</div>
   </div>
-  <div style="display:table;width:100%;table-layout:fixed;border-spacing:16px 0">
-    <div style="display:table-cell;width:50%;vertical-align:top">
-      <div class="sec">🕸️ 영역별 역량 분포</div>
-      <div style="overflow:hidden">{radar_h}</div>
-    </div>
-    <div style="display:table-cell;width:50%;vertical-align:top">
-      <div class="sec">📈 분기별 성적 추이</div>
-      <div style="overflow:hidden">{trend_h}</div>
-    </div>
-  </div>
-  <div class="sec" style="margin-top:16px">📝 교육 전문가 심층 진단</div>
-  <div class="cmt">{paras}</div>
+  <div class="sec">🕸️ 영역별 역량 분포</div>
+  <div style="overflow:hidden;width:100%">{radar_h}</div>
+  <div class="sec" style="margin-top:10px">📈 분기별 성적 추이</div>
+  <div style="overflow:hidden;width:100%">{trend_h}</div>
   <div class="ft"><span>{d['teacher_name']} 작성</span>
-    <span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 2 / 2</span></div>
+    <span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 2 / 3</span></div>
+</div>
+
+<!-- PAGE 3 -->
+<div class="page">
+  <div class="hdr">
+    <div class="ac">{d['academy_name']} · 전문가 진단</div>
+    <div class="ti">{d['student_name']} 학생 — 심층 학습 진단 리포트</div>
+    <div class="su">담당: {d['teacher_name']} | {d['report_month']} 발행</div>
+  </div>
+  <div class="sec">📝 교육 전문가 심층 진단</div>
+  <div class="cmt">{paras}</div>
+  <div class="ft"><span>{d['academy_name']}</span>
+    <span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 3 / 3</span></div>
 </div>
 </body></html>"""
 
