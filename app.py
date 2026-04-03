@@ -145,14 +145,26 @@ with tab_input:
 
     with col_R:
         with st.container(border=True):
-            st.markdown("### 📈 분기별 성적 추이")
-            q_labels = ["1분기","2분기","3분기","4분기(현재)"]
+            st.markdown("### 📈 월별 성적 추이 (1월~12월)")
+            st.caption("점수가 있는 달만 입력하세요. 0점은 차트에서 자동 제외됩니다.")
+            cur_month = datetime.now().month
+            all_labels = [f"{m}월" for m in range(1, 13)]
+            month_cols = st.columns(3)
             q_scores = []
-            for i,q in enumerate(q_labels):
-                dft = [70,76,80,int(student_score)][i]
-                val = st.number_input(q, 0.0, 100.0, float(dft), 0.5,
-                                      format="%.1f", key=f"q{i}")
-                q_scores.append(val)
+            q_labels = []
+            for i in range(12):
+                m_label = f"{i+1}월"
+                # 현재 달: student_score 기본값, 나머지: 0
+                default_v = float(student_score) if (i+1)==cur_month else 0.0
+                val = month_cols[i%3].number_input(
+                    m_label, 0.0, 100.0, default_v, 0.5,
+                    format="%.1f", key=f"m{i}")
+                if val > 0:
+                    q_labels.append(m_label)
+                    q_scores.append(val)
+            if not q_scores:   # 모두 0이면 현재 달 기본
+                q_labels = [f"{cur_month}월"]
+                q_scores = [float(student_score)]
             st.markdown("#### 📌 강사 관찰 메모")
             memo = st.text_area("",
                 value="분수 나눗셈 역수 개념 정착 확인. 심화문제 3번 패턴 반복 오류 있음.",
@@ -301,7 +313,7 @@ with tab_preview:
 - 종합 점수: {d['student_score']}점 (반 평균: {d['class_avg']}점, 편차: {d['student_score']-d['class_avg']:+.1f}점)
 - 5대 평가 지표:
 {metrics_str}
-- 분기별 추이: {dict(zip(d['q_labels'],[f"{s}점" for s in d['q_scores']]))}
+- 월별 성적 추이: {dict(zip(d['q_labels'],[f"{s}점" for s in d['q_scores']]))}
 - 강사 메모: {d['memo']}
 {exam_section}
 [작성 규칙]
@@ -350,35 +362,42 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
         fig=go.Figure()
         fig.add_trace(go.Bar(
             name=d["student_name"], x=cats, y=vals,
-            marker=dict(color=colors, line=dict(width=0),
-                        cornerradius=6),
-            text=[f"<b>{v}점</b>" for v in vals],
-            textposition="outside", textfont=dict(size=13),
-            width=0.38,
+            marker=dict(color=colors, line=dict(width=0), cornerradius=6),
+            # 숫자+점 한 줄에 표시되도록 폰트 작게
+            text=[f"{v}점" for v in vals],
+            textposition="outside",
+            textfont=dict(size=11, family="Noto Sans KR"),
+            width=0.35,
         ))
         fig.add_trace(go.Bar(
             name="반 평균", x=cats, y=avg_est,
             marker=dict(color="#CDD6E0", line=dict(width=0), cornerradius=6),
-            text=[f"{int(avg_v)}점"]*len(cats),
-            textposition="outside", textfont=dict(size=11, color="#888"),
-            width=0.38,
+            text=[f"{avg_v:.0f}점"]*len(cats),
+            textposition="outside", textfont=dict(size=10, color="#888"),
+            width=0.35,
         ))
-        fig.add_hline(y=avg_v, line_dash="dot", line_color=SILVER,
-                      line_width=1.5,
-                      annotation_text=f"반 평균 {avg_v:.1f}점",
-                      annotation_position="top left",
-                      annotation_font=dict(size=11, color=SILVER))
+        fig.add_hline(y=avg_v, line_dash="dot", line_color=SILVER, line_width=1.5)
         fig.update_layout(
-            barmode="group", height=340,
-            margin=dict(l=10,r=10,t=40,b=10),
+            barmode="group", height=370,
+            # l=55: y축 "100점" 글자 완전 표시, b=80: x축 레이블 잘림 방지
+            margin=dict(l=55, r=20, t=50, b=80),
             paper_bgcolor="white", plot_bgcolor="white",
-            yaxis=dict(range=[0,115], showgrid=True, gridcolor="#F0F0F0",
-                       ticksuffix="점", tickfont=dict(size=11)),
-            xaxis=dict(tickfont=dict(size=12, family="Noto Sans KR", color="#333")),
-            legend=dict(orientation="h", y=1.12, x=0.5, xanchor="center",
+            yaxis=dict(
+                range=[0, 118], showgrid=True, gridcolor="#F0F0F0",
+                tickmode="array",
+                tickvals=[0, 20, 40, 60, 80, 100],
+                ticktext=["0점","20점","40점","60점","80점","100점"],
+                tickfont=dict(size=11),
+            ),
+            xaxis=dict(
+                tickfont=dict(size=11, family="Noto Sans KR", color="#333"),
+                tickangle=-20,       # x축 레이블 기울여서 잘림 방지
+                automargin=True,
+            ),
+            legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center",
                         font=dict(size=12)),
             font=dict(family="Noto Sans KR"),
-            bargap=0.25, bargroupgap=0.06,
+            bargap=0.3, bargroupgap=0.06,
         )
         return fig
 
@@ -431,47 +450,59 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
         return fig
 
     def make_trend(d):
-        """그라디언트 영역 + 반평균 비교 추이"""
-        labels,scores=d["q_labels"],d["q_scores"]
-        avg=[d["class_avg"]]*len(labels)
+        """월별 성적 추이 (1~12월 중 입력된 달만)"""
+        labels, scores = d["q_labels"], d["q_scores"]
+        avg = [d["class_avg"]] * len(labels)
 
-        fig=go.Figure()
-        # 목표 라인
-        fig.add_hline(y=90, line_dash="dot", line_color=GOLD, line_width=1,
-                      annotation_text="목표 90점",
-                      annotation_font=dict(size=10,color=GOLD),
-                      annotation_position="top right")
-        # 반평균
-        fig.add_trace(go.Scatter(x=labels,y=avg, mode="lines",
-            line=dict(color=SILVER,width=1.5,dash="dot"),
+        fig = go.Figure()
+        # 반평균 점선
+        fig.add_trace(go.Scatter(
+            x=labels, y=avg, mode="lines",
+            line=dict(color=SILVER, width=1.5, dash="dot"),
             name=f"반 평균 {d['class_avg']:.1f}점"))
-        # 학생 추이
-        fig.add_trace(go.Scatter(x=labels,y=scores,
+        # 학생 월별 추이
+        fig.add_trace(go.Scatter(
+            x=labels, y=scores,
             mode="lines+markers+text",
-            line=dict(color=NAVY2,width=3.5),
-            marker=dict(size=11,color=NAVY2,
-                        line=dict(width=2.5,color=GOLD)),
-            text=[f"<b>{s:.1f}점</b>" for s in scores],
-            textposition="top center", textfont=dict(size=13,color=NAVY),
+            line=dict(color=NAVY2, width=3),
+            marker=dict(size=10, color=NAVY2, line=dict(width=2.5, color=GOLD)),
+            text=[f"{s:.1f}점" for s in scores],
+            textposition="top center",
+            textfont=dict(size=11, color=NAVY),
             name=d["student_name"],
-            fill="tozeroy", fillcolor="rgba(30,58,110,0.07)"))
+            fill="tozeroy", fillcolor="rgba(30,58,110,0.06)"))
 
-        # 최고점 강조
-        max_v=max(scores); max_i=scores.index(max_v)
-        fig.add_annotation(x=labels[max_i],y=max_v+3,
-            text=f"🏆 최고 {max_v:.1f}점",
-            showarrow=False, font=dict(size=11,color=GOLD),
-            bgcolor="white", bordercolor=GOLD, borderwidth=1, borderpad=4)
+        # 최고점 강조 annotation
+        if scores:
+            max_v = max(scores)
+            max_i = scores.index(max_v)
+            fig.add_annotation(
+                x=labels[max_i], y=max_v + 4,
+                text=f"최고 {max_v:.1f}점",
+                showarrow=False,
+                font=dict(size=10, color=GOLD),
+                bgcolor="white", bordercolor=GOLD, borderwidth=1, borderpad=3)
 
-        fig.update_layout(height=290,
-            margin=dict(l=10,r=10,t=30,b=10),
+        ymin = max(0, min(scores) - 15) if scores else 0
+        fig.update_layout(
+            height=300,
+            margin=dict(l=55, r=20, t=40, b=60),
             paper_bgcolor="white", plot_bgcolor="white",
-            yaxis=dict(range=[max(0,min(scores)-20),108],
-                       showgrid=True,gridcolor="#F2F4F8",ticksuffix="점",
-                       tickfont=dict(size=11)),
-            xaxis=dict(tickfont=dict(size=12,family="Noto Sans KR")),
-            legend=dict(orientation="h",y=1.1,x=0.5,xanchor="center",
-                        font=dict(size=12)),
+            yaxis=dict(
+                range=[ymin, 112],
+                showgrid=True, gridcolor="#F2F4F8",
+                tickmode="array",
+                tickvals=[0, 20, 40, 60, 80, 100],
+                ticktext=["0점","20점","40점","60점","80점","100점"],
+                tickfont=dict(size=11),
+            ),
+            xaxis=dict(
+                tickfont=dict(size=11, family="Noto Sans KR"),
+                tickangle=-20,
+                automargin=True,
+            ),
+            legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center",
+                        font=dict(size=11)),
             font=dict(family="Noto Sans KR"))
         return fig
 
@@ -546,7 +577,7 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
                             config={"displayModeBar":False})
     with col_t:
         with st.container(border=True):
-            st.markdown("#### 📈 분기별 성적 향상 추이")
+            st.markdown("#### 📈 월별 성적 향상 추이")
             st.plotly_chart(make_trend(d),use_container_width=True,
                             config={"displayModeBar":False})
 
@@ -582,14 +613,23 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
     # HTML 프리미엄 리포트 생성
     # ═══════════════════════════════════════════════════
     def build_html(d, comment):
-        W=640
-        def fw(fig,h): fig.update_layout(width=W,height=h,autosize=False); return fig
+        # A4 콘텐츠 폭: 210mm - 좌우여백 각 18mm×2 ≈ 560px (96dpi 기준)
+        # 인쇄 여백 12mm 확보 → 비인쇄영역 잘림 방지
+        W = 560
 
-        bar_h   = fw(make_bar(d),   310).to_html(full_html=False, include_plotlyjs="cdn",
+        def fw(fig, h):
+            fig.update_layout(
+                width=W, height=h, autosize=False,
+                margin=dict(l=55, r=15, t=45, b=60),  # 인쇄용 여백 통일
+                font=dict(size=10, family="Noto Sans KR"),
+            )
+            return fig
+
+        bar_h   = fw(make_bar(d),   290).to_html(full_html=False, include_plotlyjs="cdn",
                                                    config={"displayModeBar":False})
-        radar_h = fw(make_radar(d), 300).to_html(full_html=False, include_plotlyjs=False,
+        radar_h = fw(make_radar(d), 260).to_html(full_html=False, include_plotlyjs=False,
                                                    config={"displayModeBar":False})
-        trend_h = fw(make_trend(d), 260).to_html(full_html=False, include_plotlyjs=False,
+        trend_h = fw(make_trend(d), 240).to_html(full_html=False, include_plotlyjs=False,
                                                    config={"displayModeBar":False})
 
         diff  = d["student_score"]-d["class_avg"]
@@ -648,89 +688,114 @@ JSON·코드 없이 순수 텍스트 3문단만 출력하십시오."""}]
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:24px}}
+body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}}
+
+/* ── 인쇄 설정: 12mm 여백으로 비인쇄영역 잘림 완전 방지 ── */
 @media print{{
-  body{{background:white;padding:0}}
+  body{{background:white!important;padding:0!important}}
   .no-print{{display:none!important}}
-  @page{{size:A4 portrait;margin:0}}
-  .page{{box-shadow:none!important;margin:0!important;border-radius:0!important}}
+  @page{{size:A4 portrait;margin:12mm 12mm 14mm 12mm}}
+  .page{{
+    box-shadow:none!important;
+    margin:0!important;
+    border-radius:0!important;
+    width:100%!important;        /* @page 여백이 폭을 제어 */
+    min-height:auto!important;
+    padding:0!important;         /* @page margin이 여백 담당 */
+    border-top:4px solid {GOLD}!important;
+  }}
+  .page::before{{display:none!important}}  /* ::before 장식 인쇄 제거 */
 }}
+
+/* ── 화면 표시용 페이지 ── */
 .page{{
   width:210mm;min-height:296mm;background:white;
-  margin:0 auto 24px;padding:12mm 16mm 16mm;
-  box-shadow:0 6px 28px rgba(11,31,75,0.16);
+  margin:0 auto 20px;
+  padding:10mm 14mm 20mm;   /* 하단 20mm: 푸터 공간 */
+  box-shadow:0 4px 24px rgba(11,31,75,0.14);
   page-break-after:always;position:relative;
   border-top:5px solid {GOLD};
 }}
 .page:last-child{{page-break-after:auto}}
 
-/* 상단 골드 줄 장식 */
+/* 페이지 상단 골드 라인 */
 .page::before{{
   content:'';display:block;height:2px;
   background:linear-gradient(90deg,{GOLD},{GOLD2},{GOLD});
-  margin-bottom:14px;border-radius:2px;
+  margin-bottom:10px;border-radius:1px;
 }}
 
+/* ── 헤더 ── */
 .hdr{{
   background:linear-gradient(135deg,{NAVY},{NAVY2});
-  color:white;border-radius:10px;padding:16px 22px;
-  margin-bottom:16px;border-left:5px solid {GOLD};
+  color:white;border-radius:8px;padding:12px 18px;
+  margin-bottom:12px;border-left:4px solid {GOLD};
+  display:flex;justify-content:space-between;align-items:center;
 }}
-.hdr .ac{{font-size:9pt;opacity:.7;letter-spacing:2px;margin-bottom:4px;
-           font-family:'Noto Sans KR'}}
-.hdr .ti{{font-size:17pt;font-weight:900;font-family:'Noto Serif KR';
-           letter-spacing:-0.3px}}
-.hdr .sub{{font-size:10pt;opacity:.85;margin-top:5px;color:{GOLD2}}}
+.hdr-left .ac{{font-size:8pt;opacity:.7;letter-spacing:1.5px;margin-bottom:3px}}
+.hdr-left .ti{{font-size:15pt;font-weight:900;font-family:'Noto Serif KR'}}
+.hdr-left .sub{{font-size:9.5pt;opacity:.85;margin-top:4px;color:{GOLD2}}}
+.hdr-grade{{text-align:center;background:rgba(255,255,255,0.12);
+             border-radius:8px;padding:8px 14px;border:1px solid {GOLD}55;
+             min-width:70px;flex-shrink:0;margin-left:12px}}
+.hdr-grade .glb{{font-size:8pt;color:{GOLD2};margin-bottom:3px}}
+.hdr-grade .gvl{{font-size:16pt;font-weight:900;color:{GOLD}}}
 
-.sec{{font-size:12pt;font-weight:800;color:{NAVY};
-       border-left:4px solid {GOLD};padding-left:10px;
-       margin:16px 0 10px;font-family:'Noto Serif KR'}}
+/* ── 섹션 타이틀 ── */
+.sec{{font-size:10.5pt;font-weight:800;color:{NAVY};
+       border-left:3px solid {GOLD};padding-left:9px;
+       margin:12px 0 8px;font-family:'Noto Serif KR'}}
 
-.srow{{display:flex;gap:10px;margin-bottom:16px}}
-.sbox{{flex:1;text-align:center;border-radius:10px;padding:13px 8px;
-        border:1.5px solid #DDE2EC;background:#FAFBFE}}
-.sbox .lb{{font-size:9pt;color:#888;margin-bottom:5px;letter-spacing:.5px}}
-.sbox .vl{{font-size:23pt;font-weight:900;font-family:'Noto Serif KR'}}
+/* ── 요약 박스 ── */
+.srow{{display:flex;gap:8px;margin-bottom:12px}}
+.sbox{{flex:1;text-align:center;border-radius:8px;padding:10px 6px;
+        border:1.5px solid #DDE2EC;background:#FAFBFE;overflow:hidden}}
+.sbox .lb{{font-size:8pt;color:#888;margin-bottom:4px;letter-spacing:.3px}}
+.sbox .vl{{font-size:18pt;font-weight:900;font-family:'Noto Serif KR';
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.sbox .sm{{font-size:10pt;font-weight:700;margin-top:2px;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 
+/* ── 지표 테이블 ── */
 table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;
-           border:1px solid #E8ECF4;border-radius:8px;overflow:hidden}}
+           border:1px solid #E8ECF4;overflow:hidden}}
 table.mt tr{{border-bottom:1px solid #EEF1F8}}
 table.mt tr:last-child{{border-bottom:none}}
 table.mt tr:nth-child(even){{background:#F4F6FC}}
+table.mt td{{font-size:9.5pt;padding:7px 10px;white-space:nowrap}}
 
-.cmt{{font-size:11pt;line-height:2.1;color:#333;
-       border-top:3px solid {GOLD};padding-top:16px;
-       font-family:'Noto Sans KR'}}
+/* ── 코멘트 ── */
+.cmt{{font-size:10.5pt;line-height:1.95;color:#333;
+       border-top:3px solid {GOLD};padding-top:12px}}
+.cmt p{{margin:0 0 14px 0;text-indent:1em;text-align:justify}}
 
-.ft{{position:absolute;bottom:10mm;left:16mm;right:16mm;
+/* ── 푸터 ── */
+.ft{{position:absolute;bottom:6mm;left:14mm;right:14mm;
       display:flex;justify-content:space-between;align-items:center;
-      border-top:1px solid {GOLD}44;padding-top:7px;font-size:8.5pt;color:#aaa}}
+      border-top:1px solid {GOLD}44;padding-top:5px;
+      font-size:8pt;color:#aaa}}
 
-.pbtn{{display:block;width:300px;margin:0 auto 20px;
+/* ── 인쇄 버튼 ── */
+.pbtn{{display:block;width:280px;margin:0 auto 16px;
         background:{NAVY};color:white;border:none;
-        padding:15px 30px;border-radius:12px;font-size:16px;font-weight:700;
-        cursor:pointer;font-family:'Noto Sans KR';
-        border-bottom:3px solid {GOLD}}}
+        padding:13px 24px;border-radius:10px;font-size:15px;font-weight:700;
+        cursor:pointer;font-family:'Noto Sans KR';border-bottom:3px solid {GOLD}}}
 .pbtn:hover{{background:{NAVY2}}}
-.grade-badge{{display:inline-block;padding:4px 14px;border-radius:20px;
-               font-size:13px;font-weight:700;color:white;
-               background:{gcol};margin-left:10px;vertical-align:middle}}
 </style></head><body>
 
 <button class="pbtn no-print" onclick="window.print()">🖨️ A4 인쇄 / PDF 저장</button>
 
-<!-- ═══ PAGE 1: 점수 요약 + 막대차트 + 지표표 ═══ -->
+<!-- ══ PAGE 1: 요약 + 막대차트 + 지표표 ══ -->
 <div class="page">
-  <div class="hdr" style="display:flex;justify-content:space-between;align-items:center;">
-    <div>
+  <div class="hdr">
+    <div class="hdr-left">
       <div class="ac">{d['academy_name']} · {d['class_name']} · {d['report_month']} 월간 성적표</div>
       <div class="ti">{d['student_name']} 학생 학업 성취 리포트</div>
       <div class="sub">{d['student_school']} | {d['student_grade']} | 담당: {d['teacher_name']}</div>
     </div>
-    <div style="text-align:center;background:rgba(255,255,255,0.12);
-                border-radius:10px;padding:12px 18px;border:1px solid {GOLD}55;min-width:80px;">
-      <div style="font-size:9pt;color:{GOLD2};margin-bottom:4px;">이번 달 등급</div>
-      <div style="font-size:20pt;font-weight:900;color:{GOLD};">{glv}</div>
+    <div class="hdr-grade">
+      <div class="glb">이번 달 등급</div>
+      <div class="gvl">{glv}</div>
     </div>
   </div>
 
@@ -745,20 +810,19 @@ table.mt tr:nth-child(even){{background:#F4F6FC}}
     </div>
     <div class="sbox">
       <div class="lb">최고 강점 영역</div>
-      <div style="font-size:13pt;font-weight:900;color:{GOLD};margin-top:4px;line-height:1.3">
-        {best_m}<br><span style="font-size:16pt">{best_s}점</span></div>
+      <div class="sm" style="color:{GOLD}">{best_m}</div>
+      <div class="vl" style="color:{GOLD};font-size:16pt">{best_s}점</div>
     </div>
     <div class="sbox">
       <div class="lb">학습 단원</div>
-      <div style="font-size:10pt;font-weight:700;color:{NAVY};margin-top:6px;
-                  line-height:1.4">{d['subject']}</div>
+      <div class="sm" style="color:{NAVY};font-size:9pt;white-space:normal;line-height:1.4">{d['subject']}</div>
     </div>
   </div>
 
   <div class="sec">📊 5대 영역별 점수 비교 (학생 vs 반 평균)</div>
   <div style="overflow:hidden;width:100%">{bar_h}</div>
 
-  <div class="sec" style="margin-top:14px">🏷️ 5대 평가 지표 상세</div>
+  <div class="sec">🏷️ 5대 평가 지표 상세</div>
   <table class="mt">{rows}</table>
 
   <div class="ft">
@@ -767,18 +831,20 @@ table.mt tr:nth-child(even){{background:#F4F6FC}}
   </div>
 </div>
 
-<!-- ═══ PAGE 2: 레이더 + 추이 ═══ -->
+<!-- ══ PAGE 2: 레이더 + 월별 추이 ══ -->
 <div class="page">
   <div class="hdr">
-    <div class="ac">{d['academy_name']} · 역량 & 성장 분석</div>
-    <div class="ti">{d['student_name']} 학생 — 학습 역량 심층 분석</div>
-    <div class="sub">학습 단원: {d['subject']} | {d['report_month']}</div>
+    <div class="hdr-left">
+      <div class="ac">{d['academy_name']} · 역량 &amp; 성장 분석</div>
+      <div class="ti">{d['student_name']} 학생 — 학습 역량 분석</div>
+      <div class="sub">학습 단원: {d['subject']} | {d['report_month']}</div>
+    </div>
   </div>
 
   <div class="sec">🕸️ 5대 영역별 역량 방사형 분포</div>
   <div style="overflow:hidden;width:100%">{radar_h}</div>
 
-  <div class="sec" style="margin-top:14px">📈 분기별 성적 향상 추이</div>
+  <div class="sec">📈 월별 성적 향상 추이</div>
   <div style="overflow:hidden;width:100%">{trend_h}</div>
 
   <div class="ft">
@@ -787,25 +853,27 @@ table.mt tr:nth-child(even){{background:#F4F6FC}}
   </div>
 </div>
 
-<!-- ═══ PAGE 3: 코멘트 + 시험지분석 + 인장 ═══ -->
+<!-- ══ PAGE 3: 전문가 진단 + 시험지 분석 + 인장 ══ -->
 <div class="page">
   <div class="hdr">
-    <div class="ac">{d['academy_name']} · 전문가 심층 진단</div>
-    <div class="ti">{d['student_name']} 학생 — 학습 진단 & 로드맵</div>
-    <div class="sub">담당: {d['teacher_name']} | {d['report_month']} 발행</div>
+    <div class="hdr-left">
+      <div class="ac">{d['academy_name']} · 전문가 심층 진단</div>
+      <div class="ti">{d['student_name']} 학생 — 학습 진단 &amp; 로드맵</div>
+      <div class="sub">담당: {d['teacher_name']} | {d['report_month']} 발행</div>
+    </div>
   </div>
 
-  <div class="sec">📝 교육 전문가 심층 진단 코멘트</div>
+  <div class="sec">📝 교육 전문가 심층 진단</div>
   <div class="cmt">{paras}</div>
 
   {exam_section_html}
 
   <div style="display:flex;justify-content:flex-end;align-items:center;
-              margin-top:24px;gap:20px">
+              margin-top:20px;gap:16px">
     <div style="text-align:right">
-      <div style="font-size:10pt;color:#888;margin-bottom:4px">담당 강사 확인</div>
-      <div style="font-size:12pt;font-weight:700;color:{NAVY};
-                  border-bottom:1px solid {NAVY};padding-bottom:4px;min-width:120px">
+      <div style="font-size:9pt;color:#888;margin-bottom:4px">담당 강사 확인</div>
+      <div style="font-size:11pt;font-weight:700;color:{NAVY};
+                  border-bottom:1px solid {NAVY};padding-bottom:4px;min-width:110px">
         {d['teacher_name']}
       </div>
     </div>
@@ -813,7 +881,7 @@ table.mt tr:nth-child(even){{background:#F4F6FC}}
   </div>
 
   <div class="ft">
-    <span>{d['academy_name']} — 이 성적표는 학원 공식 발행 문서입니다.</span>
+    <span>{d['academy_name']} — 학원 공식 발행 문서</span>
     <span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 3 / 3</span>
   </div>
 </div>
