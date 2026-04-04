@@ -171,20 +171,15 @@ with tab_input:
             st.markdown("### 📈 월별 성적 추이")
             st.caption("점수가 있는 달의 데이터를 입력하세요. (엑셀처럼 표에서 직접 수정 가능)")
             
-            cur_month = datetime.now().month
-            if cur_month in [11, 12]:
-                cur_month_str = "11-12월"
-            elif f"{cur_month}월" in allowed_months:
-                cur_month_str = f"{cur_month}월"
-            else:
-                cur_month_str = ""
+            # 평가 월 기준으로 기본값 설정 (시스템 날짜 대신 사이드바 선택값 사용)
+            eval_month_str = report_month
 
             trend_data = []
             for m_label in allowed_months:
                 trend_data.append({
                     "월": m_label,
-                    "원생 점수": float(student_score) if m_label == cur_month_str else 0.0,
-                    "반 평균": float(class_avg) if m_label == cur_month_str else 0.0
+                    "원생 점수": float(student_score) if m_label == eval_month_str else 0.0,
+                    "반 평균": float(class_avg) if m_label == eval_month_str else 0.0
                 })
             df_trend = pd.DataFrame(trend_data)
             
@@ -207,7 +202,7 @@ with tab_input:
                     q_avgs.append(row["반 평균"])
             
             if not q_scores:
-                fallback_label = cur_month_str if cur_month_str else allowed_months[0]
+                fallback_label = eval_month_str if eval_month_str else allowed_months[0]
                 q_labels = [fallback_label]
                 q_scores = [float(student_score)]
                 q_avgs = [float(class_avg)]
