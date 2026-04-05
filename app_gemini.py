@@ -92,7 +92,7 @@ with st.sidebar:
     # [수정] 원생 정보
     st.markdown(f"<div style='color:{GOLD};font-size:18px;font-weight:900;margin-bottom:4px'>👤 원생 정보</div>", unsafe_allow_html=True)
     student_name   = st.text_input("원생 이름",   value="홍길동")
-    student_grade  = st.selectbox("학년", ["초등 3학년","초등 4학년","초등 5학년","초등 6학년","중학교 1학년","중학교 2학년","중학교 3학년"])
+    student_grade  = st.selectbox("학년", ["초등 1학년","초등 2학년","초등 3학년","초등 4학년","초등 5학년","초등 6학년","중학교 1학년","중학교 2학년","중학교 3학년"])
     
     st.markdown("---")
     st.markdown(f"<div style='color:{GOLD};font-size:18px;font-weight:900;margin-bottom:4px'>🤖 AI 설정</div>", unsafe_allow_html=True)
@@ -373,9 +373,20 @@ with tab_preview:
 
     def make_trend(d):
         labels, scores, avgs = d["q_labels"], d["q_scores"], d["q_avgs"]
+        
+        score_text_pos = []
+        avg_text_pos = []
+        for s, a in zip(scores, avgs):
+            if s >= a:
+                score_text_pos.append("top center")
+                avg_text_pos.append("bottom center")
+            else:
+                score_text_pos.append("bottom center")
+                avg_text_pos.append("top center")
+
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=labels, y=avgs, mode="lines+markers", line=dict(color=SILVER, width=1.5, dash="dot"), marker=dict(size=6, color=SILVER), name=f"반 평균", cliponaxis=False))
-        fig.add_trace(go.Scatter(x=labels, y=scores, mode="lines+markers+text", line=dict(color=CHARCOAL2, width=3), marker=dict(size=10, color=CHARCOAL2, line=dict(width=2.5, color=GOLD)), text=[f"{s:.1f}점" for s in scores], textposition="top center", name=d["student_name"], fill="tozeroy", fillcolor="rgba(74,93,106,0.1)", cliponaxis=False))
+        fig.add_trace(go.Scatter(x=labels, y=avgs, mode="lines+markers+text", line=dict(color=SILVER, width=1.5, dash="dot"), marker=dict(size=6, color=SILVER), text=[f"{a:.1f}점" for s, a in zip(scores, avgs)], textposition=avg_text_pos, textfont=dict(size=11, color=SILVER), name=f"반 평균", cliponaxis=False))
+        fig.add_trace(go.Scatter(x=labels, y=scores, mode="lines+markers+text", line=dict(color=CHARCOAL2, width=3), marker=dict(size=10, color=CHARCOAL2, line=dict(width=2.5, color=GOLD)), text=[f"<b>{s:.1f}점</b>" for s in scores], textposition=score_text_pos, textfont=dict(size=13, color=CHARCOAL2), name=d["student_name"], fill="tozeroy", fillcolor="rgba(74,93,106,0.1)", cliponaxis=False))
         fig.update_layout(height=300, margin=dict(l=55, r=20, t=50, b=60), paper_bgcolor="white", plot_bgcolor="white", yaxis=dict(range=[0, 120], showgrid=True, gridcolor="#F2F4F8"), legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"))
         return fig
 
