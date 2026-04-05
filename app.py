@@ -421,12 +421,34 @@ with tab_preview:
 </div>""", unsafe_allow_html=True)
 
     c1,c2,c3 = st.columns(3)
-    cards=[(c1,"평가 1회 (원생/반평균)", f"{d['score1']:.1f} / {d['avg1']:.1f}", CHARCOAL),(c2,"평가 2회 (원생/반평균)", f"{d['score2']:.1f} / {d['avg2']:.1f}", CHARCOAL),(c3,"월간 종합 (원생/반평균)", f"{d['student_score']:.1f} / {d['class_avg']:.1f}", "#546e7a")]
-    for col,lbl,val,clr in cards:
+    cards=[
+        (c1, "평가 1회", d['score1'], d['avg1'], False),
+        (c2, "평가 2회", d['score2'], d['avg2'], False),
+        (c3, "월간 종합 평균", d['student_score'], d['class_avg'], True)
+    ]
+    for col, lbl, s_score, a_score, is_main in cards:
         with col:
-            with st.container(border=True):
-                parts=val.split("\n"); mv=parts[0]; sv=parts[1] if len(parts)>1 else ""
-                st.markdown(f'<div style="text-align:center;padding:8px 0"><div style="font-size:11px;color:#888;margin-bottom:6px">{lbl}</div><div style="font-size:22px;font-weight:900;color:{clr};font-family:\'Noto Serif KR\'">{mv}</div>' + (f'<div style="font-size:14px;font-weight:700;color:{clr}">{sv}</div>' if sv else "") + '</div>',unsafe_allow_html=True)
+            bg_color = "linear-gradient(135deg, #ffffff, #fdfbf7)" if not is_main else "linear-gradient(135deg, #fefdf9, #f4ecd8)"
+            bd_color = f"{GOLD}66" if not is_main else GOLD
+            lbl_bg   = f"{GOLD}22" if not is_main else GOLD
+            lbl_clr  = CHARCOAL if not is_main else "white"
+            st.markdown(f"""
+            <div style="background:{bg_color}; border:2px solid {bd_color}; border-radius:12px; padding:16px;
+                 text-align:center; box-shadow:0 4px 12px rgba(201,168,76,0.15); margin-bottom:15px; height:100%;">
+              <div style="font-size:14px; font-weight:800; color:{lbl_clr}; margin-bottom:14px; background:{lbl_bg}; display:inline-block; padding:4px 14px; border-radius:20px;">{lbl}</div>
+              <div style="display:flex; justify-content:space-around; align-items:center;">
+                 <div style="text-align:center; flex:1;">
+                   <div style="font-size:12px; color:#888; font-weight:600; margin-bottom:4px;">원생 점수</div>
+                   <div style="font-size:28px; font-weight:900; color:{GOLD}; font-family:'Noto Serif KR'">{s_score:.1f}<span style="font-size:14px;color:#aaa">점</span></div>
+                 </div>
+                 <div style="width:2px; height:45px; background:#ddd; margin:0 10px;"></div>
+                 <div style="text-align:center; flex:1;">
+                   <div style="font-size:12px; color:#888; font-weight:600; margin-bottom:4px;">반 평균</div>
+                   <div style="font-size:24px; font-weight:700; color:{SILVER}; font-family:'Noto Serif KR'">{a_score:.1f}<span style="font-size:14px;color:#aaa">점</span></div>
+                 </div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("")
     col_r, col_t = st.columns([1,1], gap="large")
@@ -497,10 +519,33 @@ with tab_preview:
 *{{box-sizing:border-box;margin:0;padding:0}} body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}} @media print{{ body{{background:white!important;padding:0!important}} .no-print{{display:none!important}} @page{{size:A4 portrait;margin:12mm}} .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:4px solid {GOLD}!important;}} }}
 .page{{width:210mm;min-height:296mm;background:white;margin:0 auto 20px;padding:10mm 14mm 20mm;box-shadow:0 4px 24px rgba(11,31,75,0.14);page-break-after:always;position:relative;border-top:5px solid {GOLD};}} .hdr{{background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});color:white;border-radius:8px;padding:12px 18px;margin-bottom:12px;border-left:4px solid {GOLD};display:flex;justify-content:space-between;align-items:center;}}
 .hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}} .hdr-left .ti{{font-size:22pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px}} .hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}} .hdr-grade{{text-align:center;background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;border:1px solid {GOLD}55;min-width:70px;flex-shrink:0;margin-left:12px}} .hdr-grade .gvl{{font-size:16pt;font-weight:900;color:{GOLD}}}
-.sec{{font-size:10.5pt;font-weight:800;color:{CHARCOAL};border-left:3px solid {GOLD};padding-left:9px;font-family:'Noto Serif KR'}} .srow{{display:flex;gap:8px}} .sbox{{flex:1;text-align:center;border-radius:8px;padding:10px 6px;border:1.5px solid #DDE2EC;background:#FAFBFE}} .sbox .vl{{font-size:15pt;font-weight:900}} table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px solid #E8ECF4}} table.mt td{{font-size:9.5pt;padding:7px 10px}} .ft{{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;border-top:1px solid {GOLD}44;padding-top:5px;font-size:8pt;color:#aaa}}
+.sec{{font-size:10.5pt;font-weight:800;color:{CHARCOAL};border-left:3px solid {GOLD};padding-left:9px;font-family:'Noto Serif KR'}}
+.srow{{display:flex;gap:12px;margin-top:35px;margin-bottom:50px;}}
+.sbox{{flex:1;text-align:center;border-radius:12px;padding:16px 10px;border:2px solid {GOLD};background:#fff;box-shadow:0 6px 20px rgba(201,168,76,0.12);position:relative;}}
+.sbox.main{{background:#FCFAF4; border:2.5px solid #AF8E36; box-shadow:0 8px 25px rgba(175,142,54,0.25); transform:translateY(-2px);}}
+.sbox-title{{font-size:10pt;font-weight:800;color:{CHARCOAL};margin-bottom:16px;display:inline-block;background:rgba(201,168,76,0.15);padding:6px 14px;border-radius:20px; border:1px solid rgba(201,168,76,0.4);}}
+.sbox.main .sbox-title{{background:#AF8E36; color:white; border-color:#AF8E36;}}
+.sbox-content{{display:flex;justify-content:center;align-items:center; gap:8px;}}
+.sbox-item{{flex:1;text-align:center;}}
+.sbox-item .lbl{{font-size:8.5pt;color:#888;margin-bottom:6px;font-weight:600;}}
+.sbox-item .val{{font-size:18pt;font-weight:900;color:{GOLD};font-family:'Noto Serif KR';}}
+.sbox-item .avg{{font-size:15pt;color:{SILVER};}}
+.sbox.main .sbox-item .val{{font-size:22pt;color:#AF8E36;}}
+.sbox-divider{{width:1.5px;height:45px;background:#eee;}}
+table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px solid #E8ECF4}} table.mt td{{font-size:9.5pt;padding:7px 10px}} .ft{{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;border-top:1px solid {GOLD}44;padding-top:5px;font-size:8pt;color:#aaa}}
 </style></head><body>
 <div class="page"><div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ac"><b>{d['academy_name']}</b> · {d['report_month']} 성적표</div><div class="ti">{d['student_name']} 원생 학업 성취 리포트</div><div class="sub">{d['student_grade']} | 담당: {d['teacher_name']}</div></div></div><div class="hdr-grade"><div style="font-size:8pt;color:{GOLD2}">종합 등급</div><div class="gvl">{glv}</div></div></div>
-<div class="srow" style="margin-top:35px; margin-bottom:50px;"><div class="sbox"><div style="font-size:8pt;color:#888">평가 1회 (원생/반평균)</div><div class="vl">{d['score1']:.1f}/{d['avg1']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888">평가 2회 (원생/반평균)</div><div class="vl">{d['score2']:.1f}/{d['avg2']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888">월간 종합 (원생/반평균)</div><div class="vl" style="color:#546e7a">{d['student_score']:.1f}/{d['class_avg']:.1f}</div></div></div>
+<div class="srow">
+  <div class="sbox">
+    <div class="sbox-title">평가 1회</div><div class="sbox-content"><div class="sbox-item"><div class="lbl">원생 점수</div><div class="val">{d['score1']:.1f}</div></div><div class="sbox-divider"></div><div class="sbox-item"><div class="lbl">반 평균</div><div class="val avg">{d['avg1']:.1f}</div></div></div>
+  </div>
+  <div class="sbox">
+    <div class="sbox-title">평가 2회</div><div class="sbox-content"><div class="sbox-item"><div class="lbl">원생 점수</div><div class="val">{d['score2']:.1f}</div></div><div class="sbox-divider"></div><div class="sbox-item"><div class="lbl">반 평균</div><div class="val avg">{d['avg2']:.1f}</div></div></div>
+  </div>
+  <div class="sbox main">
+    <div class="sbox-title">월간 종합 평균</div><div class="sbox-content"><div class="sbox-item"><div class="lbl">원생 종합</div><div class="val">{d['student_score']:.1f}</div></div><div class="sbox-divider"></div><div class="sbox-item"><div class="lbl">반 종합 평균</div><div class="val avg">{d['class_avg']:.1f}</div></div></div>
+  </div>
+</div>
 <div class="sec" style="margin-bottom:20px;">🏷️ 5대 평가 지표 상세</div><table class="mt" style="margin-bottom:50px;">{rows}</table><div class="sec" style="margin-bottom:20px;">🕸️ 5대 영역별 역량 방사형 분포</div>{radar_h}<div class="ft"><span>{d['academy_name']}</span><span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 1 / 2</span></div></div>
 <div class="page">
 <div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ti" style="margin-bottom:0;">{d['student_name']} 원생 — 학습 진단 &amp; 로드맵</div></div></div></div>
