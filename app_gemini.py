@@ -480,17 +480,76 @@ with tab_preview:
         exam_section_html=f'<div style="margin:20px 0;padding:16px 20px;background:#FAFBFE;border-left:4px solid {GOLD};border-radius:0 8px 8px 0"><div style="font-size:11pt;font-weight:800;color:{CHARCOAL};margin-bottom:10px">📖 시험지 문항별 분석 결과</div><div style="font-size:10.5pt;line-height:1.9;color:#444;white-space:pre-wrap">{d["exam_analysis"]}</div></div>' if d.get("exam_analysis") else ""
         seal_svg=f'<svg width="88" height="88" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg"><circle cx="44" cy="44" r="42" fill="none" stroke="{GOLD}" stroke-width="2.5" stroke-dasharray="5 3"/><circle cx="44" cy="44" r="34" fill="none" stroke="{GOLD}" stroke-width="1.2"/><text x="44" y="36" text-anchor="middle" font-family="serif" font-size="9" fill="{GOLD}" font-weight="bold">{d["academy_name"][:4]}</text><text x="44" y="50" text-anchor="middle" font-family="serif" font-size="9" fill="{GOLD}" font-weight="bold">성적 확인</text><text x="44" y="62" text-anchor="middle" font-family="serif" font-size="8" fill="{GOLD}">CERTIFIED</text></svg>'
 
-        # [수정] 출력용 HTML 내 모든 '학생' -> '원생' 일괄 적용
+        # [수정] 출력용 HTML — 프리미엄 PRESTIGE 테마 적용
         return f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script><style>
-*{{box-sizing:border-box;margin:0;padding:0}} body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}} @media print{{ body{{background:white!important;padding:0!important}} .no-print{{display:none!important}} @page{{size:A4 portrait;margin:12mm}} .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:4px solid {GOLD}!important;}} }}
-.page{{width:210mm;min-height:296mm;background:white;margin:0 auto 20px;padding:10mm 14mm 20mm;box-shadow:0 4px 24px rgba(11,31,75,0.14);page-break-after:always;position:relative;border-top:5px solid {GOLD};}} .hdr{{background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});color:white;border-radius:8px;padding:12px 18px;margin-bottom:12px;border-left:4px solid {GOLD};display:flex;justify-content:space-between;align-items:center;}}
-.hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}} .hdr-left .ti{{font-size:22pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px}} .hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}} .hdr-grade{{text-align:center;background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;border:1px solid {GOLD}55;min-width:70px;flex-shrink:0;margin-left:12px}} .hdr-grade .gvl{{font-size:16pt;font-weight:900;color:{GOLD}}}
-.sec{{font-size:10.5pt;font-weight:800;color:{CHARCOAL};border-left:3px solid {GOLD};padding-left:9px;font-family:'Noto Serif KR'}} .srow{{display:flex;gap:8px}} .sbox{{flex:1;text-align:center;border-radius:8px;padding:10px 6px;border:1.5px solid #DDE2EC;background:#FAFBFE}} .sbox .vl{{font-size:15pt;font-weight:900}} table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px solid #E8ECF4}} table.mt td{{font-size:9.5pt;padding:7px 10px}} .ft{{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;border-top:1px solid {GOLD}44;padding-top:5px;font-size:8pt;color:#aaa}}
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}}
+@media print{{
+  body{{background:white!important;padding:0!important}}
+  .no-print{{display:none!important}}
+  @page{{size:A4 portrait;margin:12mm}}
+  .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:5px solid {GOLD}!important;}}
+}}
+
+/* ── 페이지 ── */
+.page{{
+  width:210mm;min-height:296mm;background:white;margin:0 auto 20px;padding:10mm 14mm 20mm;
+  box-shadow:0 8px 30px rgba(11,31,75,0.2);page-break-after:always;position:relative;
+  border-top:8px solid {GOLD};
+  background-image: radial-gradient(circle at 50% 50%, rgba(201,168,76,0.06) 0%, rgba(255,255,255,0) 70%);
+  z-index: 1;
+}}
+
+/* ── 워터마크 ── */
+.page::before {{
+  content: "";
+  position: absolute;
+  top: 25%; left: 15%; right: 15%; bottom: 25%;
+  background-image: url('data:image/svg+xml;utf8,<svg width="100%25" height="100%25" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="80" fill="none" stroke="%23C9A84C" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.1"/><text x="100" y="105" text-anchor="middle" font-family="serif" font-size="22" fill="%23C9A84C" font-weight="bold" opacity="0.15">미래학원 PRESTIGE</text></svg>');
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: -1;
+  pointer-events: none;
+}}
+
+/* ── 헤더 ── */
+.hdr{{
+  background:linear-gradient(135deg,#1f282e,{CHARCOAL});
+  color:white;border-radius:8px;padding:16px 22px;margin-bottom:15px;
+  border-left:5px solid {GOLD};
+  border-right:1px solid rgba(201,168,76,0.3);
+  border-bottom:1px solid rgba(201,168,76,0.3);
+  border-top:1px solid rgba(201,168,76,0.3);
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}}
+.hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}}
+.hdr-left .ti{{font-size:24pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px;text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}}
+.hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}}
+.hdr-grade{{text-align:center;background:rgba(201,168,76,0.15);border-radius:8px;padding:10px 16px;border:1px solid {GOLD};min-width:70px;flex-shrink:0;margin-left:12px}}
+.hdr-grade .gvl{{font-size:18pt;font-weight:900;color:{GOLD2};text-shadow: 0px 0px 4px rgba(201,168,76,0.6);}}
+
+.sec{{font-size:11.5pt;font-weight:800;color:{CHARCOAL};border-left:4px solid {GOLD};padding-left:10px;font-family:'Noto Serif KR'; background: linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%); padding-top:5px; padding-bottom:5px; border-radius:2px;}}
+
+.srow{{display:flex;gap:12px}}
+.sbox{{flex:1;text-align:center;border-radius:8px;padding:12px 6px;border:1px solid rgba(201,168,76,0.4);background:rgba(250,251,254,0.9);box-shadow: 0 2px 10px rgba(201,168,76,0.08);}}
+.sbox .vl{{font-size:16pt;font-weight:900}}
+
+table.mt{{width:100%;border-collapse:collapse;background:rgba(250,251,254,0.9);border:1px solid rgba(201,168,76,0.3); border-radius:8px; overflow:hidden;}}
+table.mt td{{font-size:10pt;padding:10px 14px}}
+table.mt tr:nth-child(even) {{background-color: rgba(201,168,76,0.04);}}
+
+.ft{{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;border-top:1px solid {GOLD};padding-top:8px;font-size:8.5pt;color:#888; font-weight:600;}}
+
 </style></head><body>
+
+<!-- ══ PAGE 1: 요약 + 지표 + 레이더 ══ -->
 <div class="page"><div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ac"><b>{d['academy_name']}</b> · {d['report_month']} 성적표</div><div class="ti">{d['student_name']} 원생 학업 성취 리포트</div><div class="sub">{d['student_grade']} | 담당: {d['teacher_name']}</div></div></div><div class="hdr-grade"><div style="font-size:8pt;color:{GOLD2}">종합 등급</div><div class="gvl">{glv}</div></div></div>
-<div class="srow" style="margin-top:35px; margin-bottom:50px;"><div class="sbox"><div style="font-size:8pt;color:#888">평가 1회 (원생/평균)</div><div class="vl">{d['score1']:.1f}/{d['avg1']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888">평가 2회 (원생/평균)</div><div class="vl">{d['score2']:.1f}/{d['avg2']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888">월간 원생 평균</div><div class="vl" style="color:#546e7a">{d['student_score']:.1f}점</div></div><div class="sbox"><div style="font-size:8pt;color:#888">최고 강점</div><div class="vl" style="color:{GOLD}">{best_s}점</div></div></div>
+<div class="srow" style="margin-top:35px; margin-bottom:50px;"><div class="sbox"><div style="font-size:8pt;color:#888;">평가 1회 (원생/평균)</div><div class="vl">{d['score1']:.1f}/{d['avg1']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">평가 2회 (원생/평균)</div><div class="vl">{d['score2']:.1f}/{d['avg2']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">월간 원생 평균</div><div class="vl" style="color:#546e7a">{d['student_score']:.1f}점</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">최고 강점</div><div class="vl" style="color:{GOLD}">{best_s}점</div></div></div>
 <div class="sec" style="margin-bottom:20px;">🏷️ 5대 평가 지표 상세</div><table class="mt" style="margin-bottom:50px;">{rows}</table><div class="sec" style="margin-bottom:20px;">🕸️ 5대 영역별 역량 방사형 분포</div>{radar_h}<div class="ft"><span>{d['academy_name']}</span><span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 1 / 2</span></div></div>
+
+<!-- ══ PAGE 2: 추이 + 진단 + 인장 ══ -->
 <div class="page">
 <div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ti" style="margin-bottom:0;">{d['student_name']} 원생 — 학습 진단 &amp; 로드맵</div></div></div></div>
 <div class="sec" style="margin-top:25px; margin-bottom:20px;">📈 월별 성적 향상 추이</div><div style="margin-bottom:40px;">{trend_h}</div><div class="sec" style="margin-bottom:20px;">📝 월별 학습 진단</div>{paras_html}{exam_section_html}
