@@ -258,7 +258,7 @@ with tab_input:
             subject=subject, next_subject=next_subject,
             metrics={"수업태도":m1,"과제수행":m2,"계산력(연산)":m3,
                      "심화문제풀이":m4,"학업성취도":m5},
-            q_scores=[float(s) for s in q_scores], q_avgs=[float(a) for a in q_avgs], q_labels=q_labels,
+            q_scores=[float(s) if s is not None else None for s in q_scores], q_avgs=[float(a) if a is not None else None for a in q_avgs], q_labels=q_labels,
             memo=memo, ai_mode=ai_mode, gemini_key=gemini_key,
             files_data=files_data, exam_analysis=exam_analysis,
         )
