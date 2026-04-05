@@ -196,16 +196,18 @@ with tab_input:
             
             q_labels, q_scores, q_avgs = [], [], []
             for _, row in edited_df.iterrows():
+                q_labels.append(row["월"])
                 if row["원생 점수"] > 0:
-                    q_labels.append(row["월"])
                     q_scores.append(row["원생 점수"])
                     q_avgs.append(row["반 평균"])
+                else:
+                    q_scores.append(None)
+                    q_avgs.append(None)
             
-            if not q_scores:
-                fallback_label = eval_month_str if eval_month_str else allowed_months[0]
-                q_labels = [fallback_label]
-                q_scores = [float(student_score)]
-                q_avgs = [float(class_avg)]
+            if not any(s is not None for s in q_scores):
+                fallback_idx = allowed_months.index(eval_month_str) if eval_month_str in allowed_months else 0
+                q_scores[fallback_idx] = float(student_score)
+                q_avgs[fallback_idx] = float(class_avg)
 
             st.markdown("---")
             st.markdown(f"#### <span style='color:{RED};'>💡 선생님의 메모 (출력에 매우 중요)</span>", unsafe_allow_html=True)
@@ -374,9 +376,18 @@ with tab_preview:
     def make_trend(d):
         labels, scores, avgs = d["q_labels"], d["q_scores"], d["q_avgs"]
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=labels, y=scores, name="원생 점수", marker_color=CHARCOAL2, text=[f"<b>{s:.1f}</b>" for s in scores], textposition="outside", textfont=dict(size=12, color=CHARCOAL2)))
-        fig.add_trace(go.Bar(x=labels, y=avgs, name="반 평균", marker_color=SILVER, text=[f"{a:.1f}" for a in avgs], textposition="outside", textfont=dict(size=11, color=SILVER)))
-        fig.update_layout(barmode='group', height=300, margin=dict(l=55, r=20, t=50, b=60), paper_bgcolor="white", plot_bgcolor="white", yaxis=dict(range=[0, 120], showgrid=True, gridcolor="#F2F4F8"), legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"))
+        fig.add_trace(go.Bar(x=labels, y=scores, name="원생 점수", marker_color=GOLD, text=[f"<b>{s:.1f}</b>" if s is not None else "" for s in scores], textposition="outside", textfont=dict(size=12, color=GOLD)))
+        fig.add_trace(go.Bar(x=labels, y=avgs, name="반 평균", marker_color=SILVER, text=[f"{a:.1f}" if a is not None else "" for a in avgs], textposition="outside", textfont=dict(size=11, color=SILVER)))
+        fig.update_layout(
+            barmode='group',
+            bargap=0.3,
+            bargroupgap=0.15,
+            height=300, margin=dict(l=55, r=20, t=50, b=60),
+            paper_bgcolor="white", plot_bgcolor="white",
+            yaxis=dict(range=[0, 120], showgrid=True, gridcolor="#F2F4F8"),
+            xaxis=dict(type='category', categoryarray=labels),
+            legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center")
+        )
         return fig
 
     # ═══════════════════════════════════════════════════
