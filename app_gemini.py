@@ -425,8 +425,8 @@ with tab_preview:
   </div>
 </div>""", unsafe_allow_html=True)
 
-    c1,c2,c3,c4 = st.columns(4)
-    cards=[(c1,"평가 1회 (원생/반평균)", f"{d['score1']:.1f} / {d['avg1']:.1f}", CHARCOAL),(c2,"평가 2회 (원생/반평균)", f"{d['score2']:.1f} / {d['avg2']:.1f}", CHARCOAL),(c3,"월간 종합 (원생/반평균)", f"{d['student_score']:.1f} / {d['class_avg']:.1f}", "#546e7a"),(c4,"최고 강점", f"{best_metric}\n{best_score}점", GOLD)]
+    c1,c2,c3 = st.columns(3)
+    cards=[(c1,"평가 1회 (원생/반평균)", f"{d['score1']:.1f} / {d['avg1']:.1f}", CHARCOAL),(c2,"평가 2회 (원생/반평균)", f"{d['score2']:.1f} / {d['avg2']:.1f}", CHARCOAL),(c3,"월간 종합 (원생/반평균)", f"{d['student_score']:.1f} / {d['class_avg']:.1f}", "#546e7a")]
     for col,lbl,val,clr in cards:
         with col:
             with st.container(border=True):
@@ -552,7 +552,7 @@ table.mt tr:nth-child(even) {{background-color: rgba(201,168,76,0.04);}}
 
 <!-- ══ PAGE 1: 요약 + 지표 + 레이더 ══ -->
 <div class="page"><div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ac"><b>{d['academy_name']}</b> · {d['report_month']} 성적표</div><div class="ti">{d['student_name']} 원생 학업 성취 리포트</div><div class="sub">{d['student_grade']} | 담당: {d['teacher_name']}</div></div></div><div class="hdr-grade"><div style="font-size:8pt;color:{GOLD2}">종합 등급</div><div class="gvl">{glv}</div></div></div>
-<div class="srow" style="margin-top:35px; margin-bottom:50px;"><div class="sbox"><div style="font-size:8pt;color:#888;">평가 1회 (원생/반평균)</div><div class="vl">{d['score1']:.1f}/{d['avg1']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">평가 2회 (원생/반평균)</div><div class="vl">{d['score2']:.1f}/{d['avg2']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">월간 종합 (원생/반평균)</div><div class="vl" style="color:#546e7a">{d['student_score']:.1f}/{d['class_avg']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">최고 강점</div><div class="vl" style="color:{GOLD}">{best_s}점</div></div></div>
+<div class="srow" style="margin-top:35px; margin-bottom:50px;"><div class="sbox"><div style="font-size:8pt;color:#888;">평가 1회 (원생/반평균)</div><div class="vl">{d['score1']:.1f}/{d['avg1']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">평가 2회 (원생/반평균)</div><div class="vl">{d['score2']:.1f}/{d['avg2']:.1f}</div></div><div class="sbox"><div style="font-size:8pt;color:#888;">월간 종합 (원생/반평균)</div><div class="vl" style="color:#546e7a">{d['student_score']:.1f}/{d['class_avg']:.1f}</div></div></div>
 <div class="sec" style="margin-bottom:20px;">🏷️ 5대 평가 지표 상세</div><table class="mt" style="margin-bottom:50px;">{rows}</table><div class="sec" style="margin-bottom:20px;">🕸️ 5대 영역별 역량 방사형 분포</div>{radar_h}<div class="ft"><span>{d['academy_name']}</span><span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 1 / 2</span></div></div>
 
 <!-- ══ PAGE 2: 추이 + 진단 + 인장 ══ -->
