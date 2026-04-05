@@ -387,25 +387,30 @@ with tab_preview:
     best_score  = d["metrics"][best_metric]
 
     st.markdown(f"""
-<div style="background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});
-     border-radius:14px;padding:22px 28px;margin-bottom:20px;
-     border-left:6px solid {GOLD}; display:flex; align-items:center;">
+<div style="background:linear-gradient(135deg,#1f282e,{CHARCOAL});
+     border-radius:8px;padding:16px 22px;margin-bottom:20px;
+     border-left:5px solid {GOLD};
+     border-right:1px solid rgba(201,168,76,0.3);
+     border-bottom:1px solid rgba(201,168,76,0.3);
+     border-top:1px solid rgba(201,168,76,0.3);
+     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+     display:flex; align-items:center;">
   {logo_img_html}
   <div>
-    <div style="font-size:18px;font-weight:700;color:{GOLD2};letter-spacing:1px;margin-bottom:6px;">
+    <div style="font-size:18px;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px;">
       {d['academy_name']} · {d['report_month']} 성적표
     </div>
-    <div style="font-size:30px;font-weight:900;color:white;font-family:'Noto Serif KR';">
+    <div style="font-size:30px;font-weight:900;color:white;font-family:'Noto Serif KR';text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
       {d['student_name']} 원생 성적표 미리보기
     </div>
     <div style="margin-top:7px;font-size:15px;color:{GOLD2};opacity:.9;">
       {d['student_grade']} | 담당: {d['teacher_name']}
     </div>
   </div>
-  <div style="text-align:center;background:rgba(255,255,255,0.12);
-              border-radius:12px;padding:14px 20px;border:1px solid {GOLD}55;margin-left:auto;">
+  <div style="text-align:center;background:rgba(201,168,76,0.15);
+              border-radius:8px;padding:14px 20px;border:1px solid {GOLD};margin-left:auto;">
     <div style="font-size:10px;color:{GOLD2};margin-bottom:4px;letter-spacing:1px;">월간 종합 등급</div>
-    <div style="font-size:22px;font-weight:900;color:{GOLD};">{glv}</div>
+    <div style="font-size:22px;font-weight:900;color:{GOLD2};text-shadow: 0px 0px 4px rgba(201,168,76,0.6);">{glv}</div>
   </div>
 </div>""", unsafe_allow_html=True)
 
@@ -415,21 +420,21 @@ with tab_preview:
         with col:
             with st.container(border=True):
                 parts=val.split("\n"); mv=parts[0]; sv=parts[1] if len(parts)>1 else ""
-                st.markdown(f'<div style="text-align:center;padding:8px 0"><div style="font-size:11px;color:#888;margin-bottom:6px">{lbl}</div><div style="font-size:22px;font-weight:900;color:{clr};font-family:\'Noto Serif KR\'">{mv}</div>' + (f'<div style="font-size:14px;font-weight:700;color:{clr}">{sv}</div>' if sv else "") + '</div>',unsafe_allow_html=True)
+                st.markdown(f'<div style="text-align:center;padding:8px 0"><div style="font-size:11px;color:#888;margin-bottom:6px">{lbl}</div><div style="font-size:24px;font-weight:900;color:{clr};font-family:\'Noto Serif KR\'">{mv}</div>' + (f'<div style="font-size:14px;font-weight:700;color:{clr}">{sv}</div>' if sv else "") + '</div>',unsafe_allow_html=True)
 
     st.markdown("")
     col_r, col_t = st.columns([1,1], gap="large")
     with col_r:
         with st.container(border=True):
-            st.markdown("#### 🕸️ 역량 방사형 분포")
+            st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>🕸️ 역량 방사형 분포</div>", unsafe_allow_html=True)
             st.plotly_chart(make_radar(d),use_container_width=True, config={"displayModeBar":False, "staticPlot":True})
     with col_t:
         with st.container(border=True):
-            st.markdown("#### 📈 월별 종합 성적 향상 추이")
+            st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>📈 월별 종합 성적 향상 추이</div>", unsafe_allow_html=True)
             st.plotly_chart(make_trend(d),use_container_width=True, config={"displayModeBar":False, "staticPlot":True})
 
     with st.container(border=True):
-        st.markdown("#### 🏷️ 5대 평가 지표 상세")
+        st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>🏷️ 5대 평가 지표 상세</div>", unsafe_allow_html=True)
         badges=""
         for lbl,val in d["metrics"].items():
             cls=("b-gold" if val>=90 else "b-blue" if val>=80 else "b-green" if val>=70 else "b-orange")
@@ -438,12 +443,12 @@ with tab_preview:
 
     if d.get("exam_analysis"):
         with st.container(border=True):
-            st.markdown(f"#### 📖 시험지 문항별 분석 결과")
+            st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>📖 시험지 문항별 분석 결과</div>", unsafe_allow_html=True)
             st.info(d["exam_analysis"])
 
     mode_lbl=("Gemini AI · 시험지 분석 포함" if use_ai and d.get("exam_analysis") else "Gemini AI 생성" if use_ai else "규칙 기반 생성")
     with st.container(border=True):
-        st.markdown(f"#### 📝 월별 학습 진단 <span style='font-size:11px;color:#aaa'>({mode_lbl})</span>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>📝 월별 학습 진단 <span style='font-size:11px;color:#aaa'>({mode_lbl})</span></div>", unsafe_allow_html=True)
         paragraphs = [p for p in comment_text.split("\n\n") if p.strip()]
         labels = ["📘 단원 연계성", "🔍 이번 달 종합", "🗺️ 다음 달 로드맵", "📝 선생님의 메모"]
         preview_html = "<table style='width:100%; border-collapse:collapse;'>"
