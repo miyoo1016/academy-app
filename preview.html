@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0} 
+body{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px} 
+@media print{ 
+    body{background:white!important;padding:0!important} 
+    .no-print{display:none!important} 
+    @page{size:A4 portrait;margin:12mm} 
+    .page{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:5px solid #C9A84C!important;} 
+}
+.page{
+    width:210mm;min-height:296mm;background:white;margin:0 auto 20px;padding:10mm 14mm 20mm;
+    box-shadow:0 8px 30px rgba(11,31,75,0.2);page-break-after:always;position:relative;
+    border-top:8px solid #C9A84C;
+    background-image: radial-gradient(circle at 50% 50%, rgba(201,168,76,0.06) 0%, rgba(255,255,255,0) 70%);
+    z-index: 1;
+} 
+.page::before {
+    content: "";
+    position: absolute;
+    top: 25%; left: 15%; right: 15%; bottom: 25%;
+    background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="80" fill="none" stroke="%23C9A84C" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.1"/><text x="100" y="105" text-anchor="middle" font-family="serif" font-size="22" fill="%23C9A84C" font-weight="bold" opacity="0.15">미래학원 PRESTIGE</text></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: -1;
+    pointer-events: none;
+}
+.hdr{
+    background:linear-gradient(135deg,#1f282e,#36454F);
+    color:white;border-radius:8px;padding:16px 22px;margin-bottom:15px;
+    border-left:5px solid #C9A84C;
+    border-right:1px solid rgba(201,168,76,0.3);
+    border-bottom:1px solid rgba(201,168,76,0.3);
+    border-top:1px solid rgba(201,168,76,0.3);
+    display:flex;justify-content:space-between;align-items:center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.hdr-left .ac{font-size:14pt;font-weight:800;color:#F0DFA0;letter-spacing:1px;margin-bottom:4px} 
+.hdr-left .ti{font-size:24pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px;text-shadow: 1px 1px 2px rgba(0,0,0,0.5);} 
+.hdr-left .sub{font-size:12pt;color:#F0DFA0;opacity:.9;margin-top:4px} 
+.hdr-grade{text-align:center;background:rgba(201,168,76,0.15);border-radius:8px;padding:10px 16px;border:1px solid #C9A84C;min-width:70px;flex-shrink:0;margin-left:12px} 
+.hdr-grade .gvl{font-size:18pt;font-weight:900;color:#F0DFA0;text-shadow: 0px 0px 4px rgba(201,168,76,0.6);}
+.sec{font-size:11.5pt;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding-left:10px;font-family:'Noto Serif KR'; background: linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%); padding-top:5px; padding-bottom:5px; border-radius:2px;} 
+.srow{display:flex;gap:12px} 
+.sbox{flex:1;text-align:center;border-radius:8px;padding:12px 6px;border:1px solid rgba(201,168,76,0.4);background:rgba(250,251,254,0.9);box-shadow: 0 2px 10px rgba(201,168,76,0.08);} 
+.sbox .vl{font-size:16pt;font-weight:900} 
+table.mt{width:100%;border-collapse:collapse;background:rgba(250,251,254,0.9);border:1px solid rgba(201,168,76,0.3); border-radius:8px; overflow:hidden;} 
+table.mt td{font-size:10pt;padding:10px 14px} 
+table.mt tr:nth-child(even) {background-color: rgba(201,168,76,0.04);}
+.ft{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;border-top:1px solid #C9A84C;padding-top:8px;font-size:8.5pt;color:#888; font-weight:600;}
+</style></head><body>
+<div class="page"><div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;"><div><div class="ac"><b>미래학원</b> · 3월 성적표</div><div class="ti">홍길동 원생 학업 성취 리포트</div><div class="sub">초등 3학년 | 담당: 수학 선생님</div></div></div><div class="hdr-grade"><div style="font-size:8pt;color:#F0DFA0">종합 등급</div><div class="gvl">우수</div></div></div>
+<div class="srow" style="margin-top:35px; margin-bottom:50px;"><div class="sbox"><div style="font-size:8pt;color:#888">평가 1회 (원생/평균)</div><div class="vl">85.0/76.0</div></div><div class="sbox"><div style="font-size:8pt;color:#888">평가 2회 (원생/평균)</div><div class="vl">88.0/78.0</div></div><div class="sbox"><div style="font-size:8pt;color:#888">월간 원생 평균</div><div class="vl" style="color:#546e7a">86.5점</div></div><div class="sbox"><div style="font-size:8pt;color:#888">최고 강점</div><div class="vl" style="color:#C9A84C">90점</div></div></div>
+<div class="sec" style="margin-bottom:20px;">🏷️ 5대 평가 지표 상세</div>
+<table class="mt" style="margin-bottom:50px;">
+<tr><td style='padding:9px 16px;font-weight:700;color:#36454F;width:130px'>수업태도</td><td style='padding:9px 16px;font-size:11px;color:#aaa;letter-spacing:-0.5px;font-family:monospace'>■■■■■■■■■■■■■■■■■■□□</td><td style='padding:9px 16px;font-weight:900;color:#36454F;text-align:right;width:60px'>90점</td><td style='padding:9px 16px;text-align:right;width:90px'><span style='background:#C9A84C18;color:#C9A84C;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700'>최우수</span></td></tr>
+<tr><td style='padding:9px 16px;font-weight:700;color:#36454F;width:130px'>과제수행</td><td style='padding:9px 16px;font-size:11px;color:#aaa;letter-spacing:-0.5px;font-family:monospace'>■■■■■■■■■■■■■■■■■□□□</td><td style='padding:9px 16px;font-weight:900;color:#36454F;text-align:right;width:60px'>85점</td><td style='padding:9px 16px;text-align:right;width:90px'><span style='background:#1F516A18;color:#1F516A;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700'>우수</span></td></tr>
+<tr><td style='padding:9px 16px;font-weight:700;color:#36454F;width:130px'>계산력(연산)</td><td style='padding:9px 16px;font-size:11px;color:#aaa;letter-spacing:-0.5px;font-family:monospace'>■■■■■■■■■■■■■■■■■■□□</td><td style='padding:9px 16px;font-weight:900;color:#36454F;text-align:right;width:60px'>90점</td><td style='padding:9px 16px;text-align:right;width:90px'><span style='background:#C9A84C18;color:#C9A84C;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700'>최우수</span></td></tr>
+<tr><td style='padding:9px 16px;font-weight:700;color:#36454F;width:130px'>심화문제풀이</td><td style='padding:9px 16px;font-size:11px;color:#aaa;letter-spacing:-0.5px;font-family:monospace'>■■■■■■■■■■■■■■■□□□□□</td><td style='padding:9px 16px;font-weight:900;color:#36454F;text-align:right;width:60px'>75점</td><td style='padding:9px 16px;text-align:right;width:90px'><span style='background:#1B6B3A18;color:#1B6B3A;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700'>양호</span></td></tr>
+<tr><td style='padding:9px 16px;font-weight:700;color:#36454F;width:130px'>학업성취도</td><td style='padding:9px 16px;font-size:11px;color:#aaa;letter-spacing:-0.5px;font-family:monospace'>■■■■■■■■■■■■■■■■■□□□</td><td style='padding:9px 16px;font-weight:900;color:#36454F;text-align:right;width:60px'>85점</td><td style='padding:9px 16px;text-align:right;width:90px'><span style='background:#1F516A18;color:#1F516A;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700'>우수</span></td></tr>
+</table>
+<div class="ft"><span>미래학원</span><span>1 / 2</span></div></div>
+<div class="page">
+<div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;"><div><div class="ti" style="margin-bottom:0;">홍길동 원생 — 학습 진단 &amp; 로드맵</div></div></div></div>
+<div class="sec" style="margin-top:25px; margin-bottom:20px;">📝 월별 학습 진단</div>
+<table style='width:100%; border-collapse:collapse; margin-top:10px;'>
+<tr><td style='width:130px; padding:14px 10px 14px 0; vertical-align:top; font-size:10.5pt; font-weight:800; color:#36454F; border-bottom:1px solid #EEF1F8;'>📘 단원 연계성</td><td style='padding:14px 0; vertical-align:top; font-size:10.5pt; line-height:1.8; color:#333; text-align:justify; border-bottom:1px solid #EEF1F8;'>이번 달 학습 단원 '분수와 소수의 혼합 계산'은(는) 초등 3학년 수학의 핵심 개념으로, 분수·소수 간 변환과 사칙연산 응용 능력을 동시에 요구합니다. 이 단원은 단순 계산 능숙도뿐 아니라 원리 이해까지 함께 체화하는 것이 장기적으로 중요합니다.</td></tr>
+<tr><td style='width:130px; padding:14px 10px 14px 0; vertical-align:top; font-size:10.5pt; font-weight:800; color:#36454F; border-bottom:1px solid #EEF1F8;'>🔍 이번 달 종합</td><td style='padding:14px 0; vertical-align:top; font-size:10.5pt; line-height:1.8; color:#333; text-align:justify; border-bottom:1px solid #EEF1F8;'>홍길동 원생은 종합 평균에서 반 평균 대비 +9.5점으로 우수한 성취를 기록했습니다. 5대 지표 중 수업태도, 계산력(연산) 영역에서 90점 이상의 뛰어난 역량을 보이고 있습니다. 꾸준한 학습 흐름을 유지하고 있습니다.</td></tr>
+<tr><td style='width:130px; padding:14px 10px 14px 0; vertical-align:top; font-size:10.5pt; font-weight:800; color:#36454F; border-bottom:1px solid #EEF1F8;'>🗺️ 다음 달 로드맵</td><td style='padding:14px 0; vertical-align:top; font-size:10.5pt; line-height:1.8; color:#333; text-align:justify; border-bottom:1px solid #EEF1F8;'>다음 달에는 '비례식과 비례배분' 과정에 대한 진도 학습 및 응용 훈련이 진행될 예정입니다.</td></tr>
+<tr><td style='width:130px; padding:14px 10px 14px 0; vertical-align:top; font-size:10.5pt; font-weight:800; color:#36454F; border-bottom:1px solid #EEF1F8;'>📝 선생님의 메모</td><td style='padding:14px 0; vertical-align:top; font-size:10.5pt; line-height:1.8; color:#333; text-align:justify; border-bottom:1px solid #EEF1F8;'>분수 나눗셈 역수 개념 정착 확인. 심화문제 3번 패턴 반복 오류 있음.</td></tr>
+</table>
+<div style="display:flex;justify-content:flex-end;align-items:center;margin-top:40px;gap:16px"><div style="text-align:right"><div style="font-size:9pt;color:#888">담당 강사 확인</div><div style="font-size:11pt;font-weight:700;color:#36454F;border-bottom:1px solid #36454F;min-width:110px">수학 선생님</div></div><svg width="88" height="88" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg"><circle cx="44" cy="44" r="42" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-dasharray="5 3"/><circle cx="44" cy="44" r="34" fill="none" stroke="#C9A84C" stroke-width="1.2"/><text x="44" y="36" text-anchor="middle" font-family="serif" font-size="9" fill="#C9A84C" font-weight="bold">미래학원</text><text x="44" y="50" text-anchor="middle" font-family="serif" font-size="9" fill="#C9A84C" font-weight="bold">성적 확인</text><text x="44" y="62" text-anchor="middle" font-family="serif" font-size="8" fill="#C9A84C">CERTIFIED</text></svg></div>
+<div class="ft"><span>미래학원 — 학원 공식 발행 문서</span><span>2 / 2</span></div></div></body></html>

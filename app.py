@@ -546,12 +546,12 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
     <div class="sbox-title">월간 종합 평균</div><div class="sbox-content"><div class="sbox-item"><div class="lbl">원생 종합</div><div class="val">{d['student_score']:.1f}</div></div><div class="sbox-divider"></div><div class="sbox-item"><div class="lbl">반 종합 평균</div><div class="val avg">{d['class_avg']:.1f}</div></div></div>
   </div>
 </div>
-<div class="sec" style="margin-bottom:20px;">🏷️ 5대 평가 지표 상세</div><table class="mt" style="margin-bottom:50px;">{rows}</table><div class="sec" style="margin-bottom:20px;">🕸️ 5대 영역별 역량 방사형 분포</div>{radar_h}<div class="ft"><span>{d['academy_name']}</span><span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 1 / 2</span></div></div>
+<div class="sec" style="margin-bottom:20px;">🏷️ 5대 평가 지표 상세</div><table class="mt" style="margin-bottom:50px;">{rows}</table><div class="sec" style="margin-bottom:20px;">🕸️ 5대 영역별 역량 방사형 분포</div>{radar_h}<div class="ft"><span>{d['academy_name']}</span><span>1 / 2</span></div></div>
 <div class="page">
 <div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ti" style="margin-bottom:0;">{d['student_name']} 원생 — 학습 진단 &amp; 로드맵</div></div></div></div>
 <div class="sec" style="margin-top:25px; margin-bottom:20px;">📈 월별 성적 향상 추이</div><div style="margin-bottom:40px;">{trend_h}</div><div class="sec" style="margin-bottom:20px;">📝 월별 학습 진단</div>{paras_html}{exam_section_html}
 <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:40px;gap:16px"><div style="text-align:right"><div style="font-size:9pt;color:#888">담당 강사 확인</div><div style="font-size:11pt;font-weight:700;color:{CHARCOAL};border-bottom:1px solid {CHARCOAL};min-width:110px">{d['teacher_name']}</div></div>{seal_svg}</div>
-<div class="ft"><span>{d['academy_name']} — 학원 공식 발행 문서</span><span>발행일 {datetime.now().strftime('%Y년 %m월 %d일')} · 2 / 2</span></div></div></body></html>"""
+<div class="ft"><span>{d['academy_name']} — 학원 공식 발행 문서</span><span>2 / 2</span></div></div></body></html>"""
 
     st.markdown("---")
     html_out = build_html(d, comment_text)
