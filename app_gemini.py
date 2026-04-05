@@ -506,17 +506,7 @@ body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}}
   z-index: 1;
 }}
 
-/* ── 워터마크 ── */
-.page::before {{
-  content: "";
-  position: absolute;
-  top: 25%; left: 15%; right: 15%; bottom: 25%;
-  background-image: url('data:image/svg+xml;utf8,<svg width="100%25" height="100%25" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="80" fill="none" stroke="%23C9A84C" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.1"/><text x="100" y="105" text-anchor="middle" font-family="serif" font-size="22" fill="%23C9A84C" font-weight="bold" opacity="0.15">미래학원 PRESTIGE</text></svg>');
-  background-repeat: no-repeat;
-  background-position: center;
-  z-index: -1;
-  pointer-events: none;
-}}
+
 
 /* ── 헤더 ── */
 .hdr{{
