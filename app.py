@@ -301,7 +301,7 @@ with tab_preview:
         if weak:
             obs.append(f"반면 {', '.join(weak)} 영역은 보완이 필요하며, 관련 유형의 반복 훈련을 강화하고 있습니다.")
 
-        qs=d["q_scores"]
+        qs=[s for s in d["q_scores"] if s is not None]
         if len(qs) >= 2:
             if qs[-1]>qs[-2]: obs.append(f"이전 평가 대비 {qs[-1]-qs[-2]:+.1f}점 향상된 흐름입니다.")
             elif qs[-1]<qs[-2]: obs.append(f"이전 평가 대비 하락하였으나, 개념 보완으로 회복 가능합니다.")
