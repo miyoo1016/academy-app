@@ -101,9 +101,8 @@ with st.sidebar:
     if "Gemini" in ai_mode:
         gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
 
-    st.markdown("---")
-    st.markdown(f"<div style='color:{GOLD};font-size:18px;font-weight:900;margin-bottom:4px'>📤 출력 옵션</div>", unsafe_allow_html=True)
-    output_format = st.radio("다운로드 형식 선택", ["HTML 파일 (PC용)","이미지 파일 (모바일용)","둘 다 생성"], index=0)
+    if "Gemini" in ai_mode:
+        gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
 
 # ═══════════════════════════════════════════════════════
 # 헤더
@@ -265,7 +264,6 @@ with tab_input:
             q_scores=[float(s) if s is not None else None for s in q_scores], q_avgs=[float(a) if a is not None else None for a in q_avgs], q_labels=q_labels,
             memo=memo, ai_mode=ai_mode, gemini_key=gemini_key,
             files_data=files_data, exam_analysis=exam_analysis,
-            output_format=output_format
         )
         st.success("✅ 완료! '📋 성적표 미리보기 & 출력' 탭을 클릭하세요.")
 
@@ -567,15 +565,18 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
 <div class="ft"><span>{d['academy_name']} — 학원 공식 발행 문서</span><span>2 / 2</span></div></div></body></html>"""
 
     st.markdown("---")
-    
+    st.markdown(f"#### 📤 출력 옵션 설정")
+    output_format = st.radio("다운로드 할 파일 형식을 선택하세요:", ["HTML 파일 (PC용)", "이미지 파일 (모바일용)", "둘 다 생성"], index=0, horizontal=True)
+    st.markdown("")
+
     # 1. HTML 생성
     html_out = build_html(d, comment_text, for_image=False)
     b64_html = base64.b64encode(html_out.encode("utf-8")).decode()
     html_fname = f"성적표_{d['student_name']}_{d['report_month']}_{datetime.now().strftime('%m%d')}.html"
     
     # 2. 이미지 생성 (선택 시)
-    show_html = d["output_format"] in ["HTML 파일 (PC용)", "둘 다 생성"]
-    show_img  = d["output_format"] in ["이미지 파일 (모바일용)", "둘 다 생성"]
+    show_html = output_format in ["HTML 파일 (PC용)", "둘 다 생성"]
+    show_img  = output_format in ["이미지 파일 (모바일용)", "둘 다 생성"]
     
     col1, col2 = st.columns(2)
     
