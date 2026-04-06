@@ -6,6 +6,7 @@ import base64, io
 import google.generativeai as genai
 from PIL import Image
 import os
+from html2image import Html2Image
 
 # ═══════════════════════════════════════════════════════
 # 색상 팔레트 (프리미엄 차콜·골드 테마)
@@ -97,9 +98,12 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"<div style='color:{GOLD};font-size:18px;font-weight:900;margin-bottom:4px'>🤖 AI 설정</div>", unsafe_allow_html=True)
     ai_mode = st.radio("코멘트 생성 방식", ["📝 규칙 기반 (무료)","🧠 Gemini AI (유료·고품질)"],index=0)
-    gemini_key = ""
     if "Gemini" in ai_mode:
         gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
+
+    st.markdown("---")
+    st.markdown(f"<div style='color:{GOLD};font-size:18px;font-weight:900;margin-bottom:4px'>📤 출력 옵션</div>", unsafe_allow_html=True)
+    output_format = st.radio("다운로드 형식 선택", ["HTML 파일 (PC용)","이미지 파일 (모바일용)","둘 다 생성"], index=0)
 
 # ═══════════════════════════════════════════════════════
 # 헤더
@@ -261,6 +265,7 @@ with tab_input:
             q_scores=[float(s) if s is not None else None for s in q_scores], q_avgs=[float(a) if a is not None else None for a in q_avgs], q_labels=q_labels,
             memo=memo, ai_mode=ai_mode, gemini_key=gemini_key,
             files_data=files_data, exam_analysis=exam_analysis,
+            output_format=output_format
         )
         st.success("✅ 완료! '📋 성적표 미리보기 & 출력' 탭을 클릭하세요.")
 
@@ -489,8 +494,16 @@ with tab_preview:
     # ═══════════════════════════════════════════════════
     # HTML 출력 (PDF 인쇄용)
     # ═══════════════════════════════════════════════════
-    def build_html(d, comment):
+    # ═══════════════════════════════════════════════════
+    # HTML 출력 (PDF 인쇄용 및 이미지 생성용)
+    # ═══════════════════════════════════════════════════
+    def build_html(d, comment, for_image=False):
         W = 560
+        # 이미지 캡처용일 경우 배경색과 레이아웃 소폭 조정
+        body_bg = "#ffffff" if for_image else "#DDE2EC"
+        page_margin = "0 auto" if for_image else "0 auto 20px"
+        page_box_shadow = "none" if for_image else "0 4px 24px rgba(11,31,75,0.14)"
+        
         def fw(fig, h): fig.update_layout(width=W, height=h, autosize=False, margin=dict(l=55, r=15, t=45, b=60), font=dict(size=10)); return fig
         radar_h = fw(make_radar(d), 360).to_html(full_html=False, include_plotlyjs="cdn", config={"displayModeBar":False, "staticPlot":True})
         trend_h = fw(make_trend(d), 240).to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar":False, "staticPlot":True})
@@ -516,8 +529,8 @@ with tab_preview:
         # [수정] 출력용 HTML 내 모든 '학생' -> '원생' 일괄 적용
         return f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script><style>
-*{{box-sizing:border-box;margin:0;padding:0}} body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}} @media print{{ body{{background:white!important;padding:0!important}} .no-print{{display:none!important}} @page{{size:A4 portrait;margin:12mm}} .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:4px solid {GOLD}!important;}} }}
-.page{{width:210mm;min-height:296mm;background:white;margin:0 auto 20px;padding:10mm 14mm 20mm;box-shadow:0 4px 24px rgba(11,31,75,0.14);page-break-after:always;position:relative;border-top:5px solid {GOLD};}} .hdr{{background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});color:white;border-radius:8px;padding:12px 18px;margin-bottom:12px;border-left:4px solid {GOLD};display:flex;justify-content:space-between;align-items:center;}}
+*{{box-sizing:border-box;margin:0;padding:0}} body{{font-family:'Noto Sans KR',sans-serif;background:{body_bg};padding:20px}} @media print{{ body{{background:white!important;padding:0!important}} .no-print{{display:none!important}} @page{{size:A4 portrait;margin:12mm}} .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:4px solid {GOLD}!important;}} }}
+.page{{width:210mm;min-height:296mm;background:white;margin:{page_margin};padding:10mm 14mm 20mm;box-shadow:{page_box_shadow};page-break-after:always;position:relative;border-top:5px solid {GOLD};}} .hdr{{background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});color:white;border-radius:8px;padding:12px 18px;margin-bottom:12px;border-left:4px solid {GOLD};display:flex;justify-content:space-between;align-items:center;}}
 .hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}} .hdr-left .ti{{font-size:22pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px}} .hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}} .hdr-grade{{text-align:center;background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;border:1px solid {GOLD}55;min-width:70px;flex-shrink:0;margin-left:12px}} .hdr-grade .gvl{{font-size:16pt;font-weight:900;color:{GOLD}}}
 .sec{{font-size:10.5pt;font-weight:800;color:{CHARCOAL};border-left:3px solid {GOLD};padding-left:9px;font-family:'Noto Serif KR'}}
 .srow{{display:flex;gap:12px;margin-top:35px;margin-bottom:50px;}}
@@ -554,9 +567,43 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
 <div class="ft"><span>{d['academy_name']} — 학원 공식 발행 문서</span><span>2 / 2</span></div></div></body></html>"""
 
     st.markdown("---")
-    html_out = build_html(d, comment_text)
-    b64_out  = base64.b64encode(html_out.encode("utf-8")).decode()
-    fname    = f"성적표_{d['student_name']}_{d['report_month']}_{datetime.now().strftime('%m%d')}.html"
-    c_dl, c_tip = st.columns([1,2])
-    with c_dl: st.markdown(f'<a href="data:text/html;base64,{b64_out}" download="{fname}" style="display:block;background:{CHARCOAL};color:white;text-align:center;padding:15px;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;border-bottom:3px solid {GOLD}">⬇️ 프리미엄 성적표 다운로드</a>', unsafe_allow_html=True)
-    with c_tip: st.info("💡 다운로드 → Chrome/Safari로 열기 → **⌘+P** → 'PDF로 저장'")
+    
+    # 1. HTML 생성
+    html_out = build_html(d, comment_text, for_image=False)
+    b64_html = base64.b64encode(html_out.encode("utf-8")).decode()
+    html_fname = f"성적표_{d['student_name']}_{d['report_month']}_{datetime.now().strftime('%m%d')}.html"
+    
+    # 2. 이미지 생성 (선택 시)
+    show_html = d["output_format"] in ["HTML 파일 (PC용)", "둘 다 생성"]
+    show_img  = d["output_format"] in ["이미지 파일 (모바일용)", "둘 다 생성"]
+    
+    col1, col2 = st.columns(2)
+    
+    if show_html:
+        with col1:
+            st.markdown(f'<a href="data:text/html;base64,{b64_html}" download="{html_fname}" style="display:block;background:{CHARCOAL};color:white;text-align:center;padding:15px;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;border-bottom:3px solid {GOLD}">📂 HTML 다운로드 (PC/인쇄용)</a>', unsafe_allow_html=True)
+            st.caption("💡 Chrome/Safari로 열어 ⌘+P(인쇄) 후 PDF로 저장이 가능합니다.")
+
+    if show_img:
+        with col2:
+            if st.button("🖼️ 이미지 파일 생성 및 다운로드", use_container_width=True, type="primary"):
+                with st.spinner("🖼️ 고화질 이미지 생성 중... (약 5~10초 소요)"):
+                    try:
+                        img_html = build_html(d, comment_text, for_image=True)
+                        hti = Html2Image(custom_flags=['--no-sandbox', '--disable-gpu'])
+                        img_name = f"report_{d['student_name']}.png"
+                        hti.screenshot(html_str=img_html, save_as=img_name, size=(850, 2400))
+                        
+                        if os.path.exists(img_name):
+                            with open(img_name, "rb") as f:
+                                st.download_button(
+                                    label="⬇️ 생성 완료! 이미지 다운로드 클릭",
+                                    data=f,
+                                    file_name=f"성적표_{d['student_name']}_{d['report_month']}.png",
+                                    mime="image/png",
+                                    use_container_width=True
+                                )
+                            os.remove(img_name)
+                    except Exception as e:
+                        st.error(f"이미지 생성 중 오류가 발생했습니다: {e}")
+

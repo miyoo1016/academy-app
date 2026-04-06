@@ -3,3 +3,4 @@ plotly
 pandas
 google-generativeai
 Pillow
+html2image
