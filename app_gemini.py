@@ -98,9 +98,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"<div style='color:{GOLD};font-size:18px;font-weight:900;margin-bottom:4px'>🤖 AI 설정</div>", unsafe_allow_html=True)
     ai_mode = st.radio("코멘트 생성 방식", ["📝 규칙 기반 (무료)","🧠 Gemini AI (유료·고품질)"],index=0)
-    if "Gemini" in ai_mode:
-        gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
-
+    gemini_key = ""
     if "Gemini" in ai_mode:
         gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
 
