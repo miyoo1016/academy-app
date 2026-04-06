@@ -6,7 +6,7 @@ import base64, io
 import google.generativeai as genai
 from PIL import Image
 import os
-from html2image import Html2Image
+# from html2image import Html2Image # 가동성 확보를 위해 지연 임포트 사용
 
 # ═══════════════════════════════════════════════════════
 # 색상 팔레트 (프리미엄 차콜·골드 테마)
@@ -113,7 +113,7 @@ st.markdown(f"""
      border-bottom:4px solid {GOLD}; display:flex; align-items:center;">
   {logo_img_html}
   <span style="font-size:26px;font-weight:900;color:white;font-family:'Noto Serif KR'">
-    📊 학원 성적표 v2 (Gemini 이식 버전)
+    📊 학원 성적표 v2.1.2 (이미지 출력 지원)
   </span>
   <span style="font-size:14px;color:{GOLD2};margin-left:auto;">{academy_name}</span>
 </div>""", unsafe_allow_html=True)
@@ -590,9 +590,10 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
             if st.button("🖼️ 이미지 파일 생성 및 다운로드", use_container_width=True, type="primary"):
                 with st.spinner("🖼️ 고화질 이미지 생성 중... (약 5~10초 소요)"):
                     try:
+                        from html2image import Html2Image
                         img_html = build_html(d, comment_text, for_image=True)
-                        hti = Html2Image(custom_flags=['--no-sandbox', '--disable-gpu'])
-                        img_name = f"report_{d['student_name']}.png"
+                        hti = Html2Image(custom_flags=['--no-sandbox', '--disable-gpu', '--hide-scrollbars'])
+                        img_name = f"report_{d['student_name']}_{datetime.now().strftime('%H%M%S')}.png"
                         hti.screenshot(html_str=img_html, save_as=img_name, size=(850, 2400))
                         
                         if os.path.exists(img_name):
