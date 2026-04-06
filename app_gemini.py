@@ -111,7 +111,7 @@ st.markdown(f"""
      border-bottom:4px solid {GOLD}; display:flex; align-items:center;">
   {logo_img_html}
   <span style="font-size:26px;font-weight:900;color:white;font-family:'Noto Serif KR'">
-    📊 학원 성적표 v2.1.4 (이미지 기능 활성)
+    📊 학원 성적표 v2.1.5 (폰트 수정)
   </span>
   <span style="font-size:14px;color:{GOLD2};margin-left:auto;">{academy_name}</span>
 </div>""", unsafe_allow_html=True)
@@ -371,7 +371,16 @@ with tab_preview:
         fig=go.Figure()
         fig.add_trace(go.Scatterpolar(r=[100]*len(cats)+[100], theta=cats_r, fill="toself", fillcolor="rgba(230,235,245,0.5)", line=dict(color="#D5DCE8",width=1), showlegend=False))
         fig.add_trace(go.Scatterpolar(r=vals_r, theta=cats_r, fill="toself", fillcolor="rgba(201,168,76,0.18)", line=dict(color=GOLD, width=2.5), marker=dict(size=9, color=GOLD, line=dict(width=2,color="white")), text=[f"<b>{v}점</b>" for v in vals]+[f"<b>{vals[0]}점</b>"], textposition="top center", mode="markers+lines+text", name=d["student_name"]))
-        fig.update_layout(polar=dict(bgcolor="white", radialaxis=dict(visible=True, range=[0,100], tickvals=[25,50,75,100], tickfont=dict(size=9,color="#bbb"), gridcolor="#E8ECF2", linecolor="#E8ECF2"), angularaxis=dict(tickfont=dict(size=14,color=CHARCOAL), linecolor="#D5DCE8")), height=420, margin=dict(l=30,r=30,t=30,b=30), showlegend=False)
+        fig.update_layout(
+            polar=dict(
+                bgcolor="white",
+                radialaxis=dict(visible=True, range=[0,100], tickvals=[25,50,75,100], tickfont=dict(size=9,color="#bbb"), gridcolor="#E8ECF2", linecolor="#E8ECF2"),
+                angularaxis=dict(tickfont=dict(size=14,color=CHARCOAL), linecolor="#D5DCE8")
+            ),
+            height=420, margin=dict(l=30,r=30,t=30,b=30),
+            showlegend=False,
+            font=dict(family="NanumGothic, sans-serif")
+        )
         return fig
 
     def make_trend(d):
@@ -387,7 +396,8 @@ with tab_preview:
             paper_bgcolor="white", plot_bgcolor="white",
             yaxis=dict(range=[0, 120], showgrid=True, gridcolor="#F2F4F8"),
             xaxis=dict(type='category', categoryarray=labels),
-            legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center")
+            legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"),
+            font=dict(family="NanumGothic, sans-serif")
         )
         return fig
 
