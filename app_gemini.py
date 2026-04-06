@@ -6,6 +6,7 @@ import base64, io
 import google.generativeai as genai
 from PIL import Image
 import os
+# from html2image import Html2Image # 가동성 확보를 위해 지연 임포트 사용
 
 # ═══════════════════════════════════════════════════════
 # 색상 팔레트 (프리미엄 차콜·골드 테마)
@@ -97,7 +98,9 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"<div style='color:{GOLD};font-size:18px;font-weight:900;margin-bottom:4px'>🤖 AI 설정</div>", unsafe_allow_html=True)
     ai_mode = st.radio("코멘트 생성 방식", ["📝 규칙 기반 (무료)","🧠 Gemini AI (유료·고품질)"],index=0)
-    gemini_key = ""
+    if "Gemini" in ai_mode:
+        gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
+
     if "Gemini" in ai_mode:
         gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
 
@@ -110,7 +113,7 @@ st.markdown(f"""
      border-bottom:4px solid {GOLD}; display:flex; align-items:center;">
   {logo_img_html}
   <span style="font-size:26px;font-weight:900;color:white;font-family:'Noto Serif KR'">
-    📊 학원 성적표 v2 (Gemini 이식 버전)
+    📊 학원 성적표 v2.1.4 (이미지 기능 활성)
   </span>
   <span style="font-size:14px;color:{GOLD2};margin-left:auto;">{academy_name}</span>
 </div>""", unsafe_allow_html=True)
@@ -129,7 +132,7 @@ with tab_input:
             cols = st.columns(min(len(uploaded_files),5))
             for i,f in enumerate(uploaded_files):
                 if f.type.startswith("image"):
-                    cols[i%5].image(f, caption=f.name, use_container_width=True)
+                    cols[i%5].image(f, caption=f.name, width="stretch")
                 else:
                     cols[i%5].markdown(f"📄 `{f.name}`")
             st.success(f"✅ {len(uploaded_files)}개 파일 업로드 완료")
@@ -186,7 +189,7 @@ with tab_input:
             edited_df = st.data_editor(
                 df_trend,
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "월": st.column_config.TextColumn("월", disabled=True),
                     "원생 점수": st.column_config.NumberColumn("원생 점수", min_value=0.0, max_value=100.0, format="%.1f", step=0.5),
@@ -215,7 +218,7 @@ with tab_input:
             memo = st.text_area("", value="분수 나눗셈 역수 개념 정착 확인. 심화문제 3번 패턴 반복 오류 있음.", height=150, label_visibility="collapsed")
 
     st.markdown("")
-    gen_btn = st.button("🚀 성적표 생성하기", use_container_width=True, type="primary")
+    gen_btn = st.button("🚀 성적표 생성하기", width="stretch", type="primary")
 
     if gen_btn:
         files_data = []
@@ -398,30 +401,25 @@ with tab_preview:
     best_score  = d["metrics"][best_metric]
 
     st.markdown(f"""
-<div style="background:linear-gradient(135deg,#1f282e,{CHARCOAL});
-     border-radius:8px;padding:16px 22px;margin-bottom:20px;
-     border-left:5px solid {GOLD};
-     border-right:1px solid rgba(201,168,76,0.3);
-     border-bottom:1px solid rgba(201,168,76,0.3);
-     border-top:1px solid rgba(201,168,76,0.3);
-     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-     display:flex; align-items:center;">
+<div style="background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});
+     border-radius:14px;padding:22px 28px;margin-bottom:20px;
+     border-left:6px solid {GOLD}; display:flex; align-items:center;">
   {logo_img_html}
   <div>
-    <div style="font-size:18px;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px;">
+    <div style="font-size:18px;font-weight:700;color:{GOLD2};letter-spacing:1px;margin-bottom:6px;">
       {d['academy_name']} · {d['report_month']} 성적표
     </div>
-    <div style="font-size:30px;font-weight:900;color:white;font-family:'Noto Serif KR';text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+    <div style="font-size:30px;font-weight:900;color:white;font-family:'Noto Serif KR';">
       {d['student_name']} 원생 성적표 미리보기
     </div>
     <div style="margin-top:7px;font-size:15px;color:{GOLD2};opacity:.9;">
       {d['student_grade']} | 담당: {d['teacher_name']}
     </div>
   </div>
-  <div style="text-align:center;background:rgba(201,168,76,0.15);
-              border-radius:8px;padding:14px 20px;border:1px solid {GOLD};margin-left:auto;">
+  <div style="text-align:center;background:rgba(255,255,255,0.12);
+              border-radius:12px;padding:14px 20px;border:1px solid {GOLD}55;margin-left:auto;">
     <div style="font-size:10px;color:{GOLD2};margin-bottom:4px;letter-spacing:1px;">월간 종합 등급</div>
-    <div style="font-size:22px;font-weight:900;color:{GOLD2};text-shadow: 0px 0px 4px rgba(201,168,76,0.6);">{glv}</div>
+    <div style="font-size:22px;font-weight:900;color:{GOLD};">{glv}</div>
   </div>
 </div>""", unsafe_allow_html=True)
 
@@ -459,15 +457,15 @@ with tab_preview:
     col_r, col_t = st.columns([1,1], gap="large")
     with col_r:
         with st.container(border=True):
-            st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>🕸️ 역량 방사형 분포</div>", unsafe_allow_html=True)
-            st.plotly_chart(make_radar(d),use_container_width=True, config={"displayModeBar":False, "staticPlot":True})
+            st.markdown("#### 🕸️ 역량 방사형 분포")
+            st.plotly_chart(make_radar(d),width="stretch", config={"displayModeBar":False, "staticPlot":True})
     with col_t:
         with st.container(border=True):
-            st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>📈 월별 종합 성적 향상 추이</div>", unsafe_allow_html=True)
-            st.plotly_chart(make_trend(d),use_container_width=True, config={"displayModeBar":False, "staticPlot":True})
+            st.markdown("#### 📈 월별 종합 성적 향상 추이")
+            st.plotly_chart(make_trend(d),width="stretch", config={"displayModeBar":False, "staticPlot":True})
 
     with st.container(border=True):
-        st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>🏷️ 5대 평가 지표 상세</div>", unsafe_allow_html=True)
+        st.markdown("#### 🏷️ 5대 평가 지표 상세")
         badges=""
         for lbl,val in d["metrics"].items():
             cls=("b-gold" if val>=90 else "b-blue" if val>=80 else "b-green" if val>=70 else "b-orange")
@@ -476,12 +474,12 @@ with tab_preview:
 
     if d.get("exam_analysis"):
         with st.container(border=True):
-            st.markdown("<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>📖 시험지 문항별 분석 결과</div>", unsafe_allow_html=True)
+            st.markdown(f"#### 📖 시험지 문항별 분석 결과")
             st.info(d["exam_analysis"])
 
     mode_lbl=("Gemini AI · 시험지 분석 포함" if use_ai and d.get("exam_analysis") else "Gemini AI 생성" if use_ai else "규칙 기반 생성")
     with st.container(border=True):
-        st.markdown(f"<div style='font-size:16px;font-weight:800;color:#36454F;border-left:4px solid #C9A84C;padding:5px 10px;font-family:Noto Serif KR;background:linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%);border-radius:2px;margin-bottom:10px;'>📝 월별 학습 진단 <span style='font-size:11px;color:#aaa'>({mode_lbl})</span></div>", unsafe_allow_html=True)
+        st.markdown(f"#### 📝 월별 학습 진단 <span style='font-size:11px;color:#aaa'>({mode_lbl})</span>", unsafe_allow_html=True)
         paragraphs = [p for p in comment_text.split("\n\n") if p.strip()]
         labels = ["📘 단원 연계성", "🔍 이번 달 종합", "🗺️ 다음 달 로드맵", "📝 선생님의 메모"]
         preview_html = "<table style='width:100%; border-collapse:collapse;'>"
@@ -494,8 +492,16 @@ with tab_preview:
     # ═══════════════════════════════════════════════════
     # HTML 출력 (PDF 인쇄용)
     # ═══════════════════════════════════════════════════
-    def build_html(d, comment):
+    # ═══════════════════════════════════════════════════
+    # HTML 출력 (PDF 인쇄용 및 이미지 생성용)
+    # ═══════════════════════════════════════════════════
+    def build_html(d, comment, for_image=False):
         W = 560
+        # 이미지 캡처용일 경우 배경색과 레이아웃 소폭 조정
+        body_bg = "#ffffff" if for_image else "#DDE2EC"
+        page_margin = "0 auto" if for_image else "0 auto 20px"
+        page_box_shadow = "none" if for_image else "0 4px 24px rgba(11,31,75,0.14)"
+        
         def fw(fig, h): fig.update_layout(width=W, height=h, autosize=False, margin=dict(l=55, r=15, t=45, b=60), font=dict(size=10)); return fig
         radar_h = fw(make_radar(d), 360).to_html(full_html=False, include_plotlyjs="cdn", config={"displayModeBar":False, "staticPlot":True})
         trend_h = fw(make_trend(d), 240).to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar":False, "staticPlot":True})
@@ -518,48 +524,13 @@ with tab_preview:
         exam_section_html=f'<div style="margin:20px 0;padding:16px 20px;background:#FAFBFE;border-left:4px solid {GOLD};border-radius:0 8px 8px 0"><div style="font-size:11pt;font-weight:800;color:{CHARCOAL};margin-bottom:10px">📖 시험지 문항별 분석 결과</div><div style="font-size:10.5pt;line-height:1.9;color:#444;white-space:pre-wrap">{d["exam_analysis"]}</div></div>' if d.get("exam_analysis") else ""
         seal_svg=f'<svg width="88" height="88" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg"><circle cx="44" cy="44" r="42" fill="none" stroke="{GOLD}" stroke-width="2.5" stroke-dasharray="5 3"/><circle cx="44" cy="44" r="34" fill="none" stroke="{GOLD}" stroke-width="1.2"/><text x="44" y="36" text-anchor="middle" font-family="serif" font-size="9" fill="{GOLD}" font-weight="bold">{d["academy_name"][:4]}</text><text x="44" y="50" text-anchor="middle" font-family="serif" font-size="9" fill="{GOLD}" font-weight="bold">성적 확인</text><text x="44" y="62" text-anchor="middle" font-family="serif" font-size="8" fill="{GOLD}">CERTIFIED</text></svg>'
 
-        # [수정] 출력용 HTML — 프리미엄 PRESTIGE 테마 적용
+        # [수정] 출력용 HTML 내 모든 '학생' -> '원생' 일괄 적용
         return f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script><style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}}
-@media print{{
-  body{{background:white!important;padding:0!important}}
-  .no-print{{display:none!important}}
-  @page{{size:A4 portrait;margin:12mm}}
-  .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:5px solid {GOLD}!important;}}
-}}
-
-/* ── 페이지 ── */
-.page{{
-  width:210mm;min-height:296mm;background:white;margin:0 auto 20px;padding:10mm 14mm 20mm;
-  box-shadow:0 8px 30px rgba(11,31,75,0.2);page-break-after:always;position:relative;
-  border-top:8px solid {GOLD};
-  background-image: radial-gradient(circle at 50% 50%, rgba(201,168,76,0.06) 0%, rgba(255,255,255,0) 70%);
-  z-index: 1;
-}}
-
-
-
-/* ── 헤더 ── */
-.hdr{{
-  background:linear-gradient(135deg,#1f282e,{CHARCOAL});
-  color:white;border-radius:8px;padding:16px 22px;margin-bottom:15px;
-  border-left:5px solid {GOLD};
-  border-right:1px solid rgba(201,168,76,0.3);
-  border-bottom:1px solid rgba(201,168,76,0.3);
-  border-top:1px solid rgba(201,168,76,0.3);
-  display:flex;justify-content:space-between;align-items:center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}}
-.hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}}
-.hdr-left .ti{{font-size:24pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px;text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}}
-.hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}}
-.hdr-grade{{text-align:center;background:rgba(201,168,76,0.15);border-radius:8px;padding:10px 16px;border:1px solid {GOLD};min-width:70px;flex-shrink:0;margin-left:12px}}
-.hdr-grade .gvl{{font-size:18pt;font-weight:900;color:{GOLD2};text-shadow: 0px 0px 4px rgba(201,168,76,0.6);}}
-
-.sec{{font-size:11.5pt;font-weight:800;color:{CHARCOAL};border-left:4px solid {GOLD};padding-left:10px;font-family:'Noto Serif KR'; background: linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%); padding-top:5px; padding-bottom:5px; border-radius:2px;}}
-
+*{{box-sizing:border-box;margin:0;padding:0}} body{{font-family:'Noto Sans KR',sans-serif;background:{body_bg};padding:20px}} @media print{{ body{{background:white!important;padding:0!important}} .no-print{{display:none!important}} @page{{size:A4 portrait;margin:12mm}} .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:4px solid {GOLD}!important;}} }}
+.page{{width:210mm;min-height:296mm;background:white;margin:{page_margin};padding:10mm 14mm 20mm;box-shadow:{page_box_shadow};page-break-after:always;position:relative;border-top:5px solid {GOLD};}} .hdr{{background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});color:white;border-radius:8px;padding:12px 18px;margin-bottom:12px;border-left:4px solid {GOLD};display:flex;justify-content:space-between;align-items:center;}}
+.hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}} .hdr-left .ti{{font-size:22pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px}} .hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}} .hdr-grade{{text-align:center;background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;border:1px solid {GOLD}55;min-width:70px;flex-shrink:0;margin-left:12px}} .hdr-grade .gvl{{font-size:16pt;font-weight:900;color:{GOLD}}}
+.sec{{font-size:10.5pt;font-weight:800;color:{CHARCOAL};border-left:3px solid {GOLD};padding-left:9px;font-family:'Noto Serif KR'}}
 .srow{{display:flex;gap:12px;margin-top:35px;margin-bottom:50px;}}
 .sbox{{flex:1;text-align:center;border-radius:12px;padding:12px 10px;border:2px solid {GOLD};background:#fff;box-shadow:0 6px 20px rgba(201,168,76,0.12);position:relative;}}
 .sbox.main{{background:#FCFAF4; border:2.5px solid #AF8E36; box-shadow:0 8px 25px rgba(175,142,54,0.25); transform:translateY(-2px);}}
@@ -572,16 +543,8 @@ body{{font-family:'Noto Sans KR',sans-serif;background:#DDE2EC;padding:20px}}
 .sbox-item .avg{{font-size:13pt;color:{SILVER};}}
 .sbox.main .sbox-item .val{{font-size:19pt;color:#1E3A8A;}}
 .sbox-divider{{width:1.5px;height:35px;background:#eee;}}
-
-table.mt{{width:100%;border-collapse:collapse;background:rgba(250,251,254,0.9);border:1px solid rgba(201,168,76,0.3); border-radius:8px; overflow:hidden;}}
-table.mt td{{font-size:10pt;padding:10px 14px}}
-table.mt tr:nth-child(even) {{background-color: rgba(201,168,76,0.04);}}
-
-.ft{{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;border-top:1px solid {GOLD};padding-top:8px;font-size:8.5pt;color:#888; font-weight:600;}}
-
+table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px solid #E8ECF4}} table.mt td{{font-size:9.5pt;padding:7px 10px}} .ft{{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;border-top:1px solid {GOLD}44;padding-top:5px;font-size:8pt;color:#aaa}}
 </style></head><body>
-
-<!-- ══ PAGE 1: 요약 + 지표 + 레이더 ══ -->
 <div class="page"><div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ac"><b>{d['academy_name']}</b> · {d['report_month']} 성적표</div><div class="ti">{d['student_name']} 원생 학업 성취 리포트</div><div class="sub">{d['student_grade']} | 담당: {d['teacher_name']}</div></div></div><div class="hdr-grade"><div style="font-size:8pt;color:{GOLD2}">종합 등급</div><div class="gvl">{glv}</div></div></div>
 <div class="srow">
   <div class="sbox">
@@ -595,8 +558,6 @@ table.mt tr:nth-child(even) {{background-color: rgba(201,168,76,0.04);}}
   </div>
 </div>
 <div class="sec" style="margin-bottom:20px;">🏷️ 5대 평가 지표 상세</div><table class="mt" style="margin-bottom:50px;">{rows}</table><div class="sec" style="margin-bottom:20px;">🕸️ 5대 영역별 역량 방사형 분포</div>{radar_h}<div class="ft"><span>{d['academy_name']}</span><span>1 / 2</span></div></div>
-
-<!-- ══ PAGE 2: 추이 + 진단 + 인장 ══ -->
 <div class="page">
 <div class="hdr"><div class="hdr-left" style="display:flex; align-items:center;">{logo_img_print_html}<div><div class="ti" style="margin-bottom:0;">{d['student_name']} 원생 — 학습 진단 &amp; 로드맵</div></div></div></div>
 <div class="sec" style="margin-top:25px; margin-bottom:20px;">📈 월별 성적 향상 추이</div><div style="margin-bottom:40px;">{trend_h}</div><div class="sec" style="margin-bottom:20px;">📝 월별 학습 진단</div>{paras_html}{exam_section_html}
@@ -604,9 +565,47 @@ table.mt tr:nth-child(even) {{background-color: rgba(201,168,76,0.04);}}
 <div class="ft"><span>{d['academy_name']} — 학원 공식 발행 문서</span><span>2 / 2</span></div></div></body></html>"""
 
     st.markdown("---")
-    html_out = build_html(d, comment_text)
-    b64_out  = base64.b64encode(html_out.encode("utf-8")).decode()
-    fname    = f"성적표_{d['student_name']}_{d['report_month']}_{datetime.now().strftime('%m%d')}.html"
-    c_dl, c_tip = st.columns([1,2])
-    with c_dl: st.markdown(f'<a href="data:text/html;base64,{b64_out}" download="{fname}" style="display:block;background:{CHARCOAL};color:white;text-align:center;padding:15px;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;border-bottom:3px solid {GOLD}">⬇️ 프리미엄 성적표 다운로드</a>', unsafe_allow_html=True)
-    with c_tip: st.info("💡 다운로드 → Chrome/Safari로 열기 → **⌘+P** → 'PDF로 저장'")
+    st.markdown(f"#### 📤 출력 옵션 설정")
+    output_format = st.radio("다운로드 할 파일 형식을 선택하세요:", ["HTML 파일 (PC용)", "이미지 파일 (모바일용)", "둘 다 생성"], index=0, horizontal=True)
+    st.markdown("")
+
+    # 1. HTML 생성
+    html_out = build_html(d, comment_text, for_image=False)
+    b64_html = base64.b64encode(html_out.encode("utf-8")).decode()
+    html_fname = f"성적표_{d['student_name']}_{d['report_month']}_{datetime.now().strftime('%m%d')}.html"
+    
+    # 2. 이미지 생성 (선택 시)
+    show_html = output_format in ["HTML 파일 (PC용)", "둘 다 생성"]
+    show_img  = output_format in ["이미지 파일 (모바일용)", "둘 다 생성"]
+    
+    col1, col2 = st.columns(2)
+    
+    if show_html:
+        with col1:
+            st.markdown(f'<a href="data:text/html;base64,{b64_html}" download="{html_fname}" style="display:block;background:{CHARCOAL};color:white;text-align:center;padding:15px;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;border-bottom:3px solid {GOLD}">📂 HTML 다운로드 (PC/인쇄용)</a>', unsafe_allow_html=True)
+            st.caption("💡 Chrome/Safari로 열어 ⌘+P(인쇄) 후 PDF로 저장이 가능합니다.")
+
+    if show_img:
+        with col2:
+            if st.button("🖼️ 이미지 파일 생성 및 다운로드", width="stretch", type="primary"):
+                with st.spinner("🖼️ 고화질 이미지 생성 중... (약 5~10초 소요)"):
+                    try:
+                        from html2image import Html2Image
+                        img_html = build_html(d, comment_text, for_image=True)
+                        hti = Html2Image(custom_flags=['--no-sandbox', '--disable-gpu', '--hide-scrollbars'])
+                        img_name = f"report_{d['student_name']}_{datetime.now().strftime('%H%M%S')}.png"
+                        hti.screenshot(html_str=img_html, save_as=img_name, size=(850, 2400))
+                        
+                        if os.path.exists(img_name):
+                            with open(img_name, "rb") as f:
+                                st.download_button(
+                                    label="⬇️ 생성 완료! 이미지 다운로드 클릭",
+                                    data=f,
+                                    file_name=f"성적표_{d['student_name']}_{d['report_month']}.png",
+                                    mime="image/png",
+                                    width="stretch"
+                                )
+                            os.remove(img_name)
+                    except Exception as e:
+                        st.error(f"이미지 생성 중 오류가 발생했습니다: {e}")
+

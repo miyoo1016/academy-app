@@ -113,7 +113,7 @@ st.markdown(f"""
      border-bottom:4px solid {GOLD}; display:flex; align-items:center;">
   {logo_img_html}
   <span style="font-size:26px;font-weight:900;color:white;font-family:'Noto Serif KR'">
-    📊 학원 성적표 v2.1.3 (배포 테스트 중...)
+    📊 학원 성적표 v2.1.4 (이미지 기능 활성)
   </span>
   <span style="font-size:14px;color:{GOLD2};margin-left:auto;">{academy_name}</span>
 </div>""", unsafe_allow_html=True)
@@ -132,7 +132,7 @@ with tab_input:
             cols = st.columns(min(len(uploaded_files),5))
             for i,f in enumerate(uploaded_files):
                 if f.type.startswith("image"):
-                    cols[i%5].image(f, caption=f.name, use_container_width=True)
+                    cols[i%5].image(f, caption=f.name, width="stretch")
                 else:
                     cols[i%5].markdown(f"📄 `{f.name}`")
             st.success(f"✅ {len(uploaded_files)}개 파일 업로드 완료")
@@ -189,7 +189,7 @@ with tab_input:
             edited_df = st.data_editor(
                 df_trend,
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "월": st.column_config.TextColumn("월", disabled=True),
                     "원생 점수": st.column_config.NumberColumn("원생 점수", min_value=0.0, max_value=100.0, format="%.1f", step=0.5),
@@ -218,7 +218,7 @@ with tab_input:
             memo = st.text_area("", value="분수 나눗셈 역수 개념 정착 확인. 심화문제 3번 패턴 반복 오류 있음.", height=150, label_visibility="collapsed")
 
     st.markdown("")
-    gen_btn = st.button("🚀 성적표 생성하기", use_container_width=True, type="primary")
+    gen_btn = st.button("🚀 성적표 생성하기", width="stretch", type="primary")
 
     if gen_btn:
         files_data = []
@@ -458,11 +458,11 @@ with tab_preview:
     with col_r:
         with st.container(border=True):
             st.markdown("#### 🕸️ 역량 방사형 분포")
-            st.plotly_chart(make_radar(d),use_container_width=True, config={"displayModeBar":False, "staticPlot":True})
+            st.plotly_chart(make_radar(d),width="stretch", config={"displayModeBar":False, "staticPlot":True})
     with col_t:
         with st.container(border=True):
             st.markdown("#### 📈 월별 종합 성적 향상 추이")
-            st.plotly_chart(make_trend(d),use_container_width=True, config={"displayModeBar":False, "staticPlot":True})
+            st.plotly_chart(make_trend(d),width="stretch", config={"displayModeBar":False, "staticPlot":True})
 
     with st.container(border=True):
         st.markdown("#### 🏷️ 5대 평가 지표 상세")
@@ -587,7 +587,7 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
 
     if show_img:
         with col2:
-            if st.button("🖼️ 이미지 파일 생성 및 다운로드", use_container_width=True, type="primary"):
+            if st.button("🖼️ 이미지 파일 생성 및 다운로드", width="stretch", type="primary"):
                 with st.spinner("🖼️ 고화질 이미지 생성 중... (약 5~10초 소요)"):
                     try:
                         from html2image import Html2Image
@@ -603,7 +603,7 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
                                     data=f,
                                     file_name=f"성적표_{d['student_name']}_{d['report_month']}.png",
                                     mime="image/png",
-                                    use_container_width=True
+                                    width="stretch"
                                 )
                             os.remove(img_name)
                     except Exception as e:
