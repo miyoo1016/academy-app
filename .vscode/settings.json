@@ -1,3 +1,7 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "python.defaultInterpreterPath": "/Users/miyoo1016/academy_app/venv/bin/python",
+    "python.analysis.extraPaths": [
+        "./venv/lib/python3.12/site-packages"
+    ]
 }

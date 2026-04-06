@@ -22,11 +22,11 @@ ORANGE    = "#C85000"
 RED       = "#A31515"
 
 def grade_info(score):
-    if score >= 95: return "최우수", GOLD
-    if score >= 90: return "우수",   "#1A5276"
+    if score >= 90: return "최우수", GOLD
     if score >= 85: return "우수",   "#1A5276"
-    if score >= 80: return "양호",   "#1B6B3A"
+    if score >= 80: return "우수",   "#1A5276"
     if score >= 75: return "양호",   "#1B6B3A"
+    if score >= 70: return "양호",   "#1B6B3A"
     return "성장중", "#5D7A8C"
 
 # ═══════════════════════════════════════════════════════
@@ -111,17 +111,59 @@ st.markdown(f"""
      border-bottom:4px solid {GOLD}; display:flex; align-items:center;">
   {logo_img_html}
   <span style="font-size:26px;font-weight:900;color:white;font-family:'Noto Serif KR'">
-    📊 학원 성적표 v2.1.5 (폰트 수정)
+    📊 학원 성적표 v2.2.0 (Premium)
   </span>
   <span style="font-size:14px;color:{GOLD2};margin-left:auto;">{academy_name}</span>
 </div>""", unsafe_allow_html=True)
 
-tab_input, tab_preview = st.tabs(["✏️ 성적 입력", "📋 성적표 미리보기 & 출력"])
+# ═══════════════════════════════════════════════════════
+# 내비게이션 제어 (상태 기반 탭 구현)
+# ═══════════════════════════════════════════════════════
+if "active_tab" not in st.session_state:
+    st.session_state["active_tab"] = 0
+
+# 탭 스타일링을 위한 헬퍼
+tab_labels = ["✏️ 성적 입력", "📋 성적표 미리보기 & 출력"]
+
+# 상단 탭 선택 바 (라디오 버튼을 탭처럼 스타일링하거나 기본 탭 사용 대신 세션 상태와 연동)
+# 실제 st.tabs는 프로그램 제어가 어려우므로, 상태 기반으로 직접 렌더링 방식 선택 가능
+# 여기서는 사용자 경험 유지를 위해 st.tabs를 쓰되, 단계 전환 버튼이 작동하도록 함
+
+active_tab = st.session_state["active_tab"]
+
+# 실제 탭 생성 (탭 이름을 세션 상태에 따라 동적으로 처리하거나, 직접 세션 상태로 분기)
+# 가장 깔끔한 방법은 세션 상태에 따라 탭 중 하나가 '활성화'된 것처럼 보이게 하는 것이나
+# Streamlit의 st.tabs는 현재 프로그래밍 방식의 인덱스 지정을 직접 지원하지 않습니다.
+# 대신, 성적표 생성 시 자동으로 다음 단계를 보여주는 로직과 '수정' 버튼 클릭 시 
+# 다시 입력 화면을 보여주는 로직을 위해 '전체 컨테이너 분기' 방식으로 전환합니다.
+
+# 탭 UI를 세션 상태로 제어하기 위해 탭 대신 '라디오' 또는 '버튼' 기반 내비게이션 사용
+st.markdown("""
+<style>
+    div[data-testid="stHorizontalBlock"] > div:has(button) { display: flex; justify-content: center; }
+</style>
+""", unsafe_allow_html=True)
+
+nav_col1, nav_col2 = st.columns(2)
+with nav_col1:
+    if st.button("✏️ 성적 입력", use_container_width=True, type="primary" if st.session_state["active_tab"] == 0 else "secondary"):
+        st.session_state["active_tab"] = 0
+        st.rerun()
+with nav_col2:
+    if st.button("📋 성적표 미리보기 & 출력", use_container_width=True, type="primary" if st.session_state["active_tab"] == 1 else "secondary"):
+        if "report_data" in st.session_state:
+            st.session_state["active_tab"] = 1
+            st.rerun()
+        else:
+            st.warning("먼저 성적을 입력하고 '성적표 생성하기'를 눌러주세요.")
+
+st.markdown("---")
 
 # ═══════════════════════════════════════════════════════
-# TAB 1: 성적 입력
+# 화면 분기 시작
 # ═══════════════════════════════════════════════════════
-with tab_input:
+if st.session_state["active_tab"] == 0:
+    # --- [성적 입력 화면] ---
     with st.container(border=True):
         st.markdown(f"### 📎 시험지 업로드 <span style='font-size:13px;color:{GOLD};'>(Gemini AI 모드에서 문항별 분석 자동 반영)</span>", unsafe_allow_html=True)
         st.caption("JPG · PNG · PDF 지원 | 여러 장 동시 업로드 가능 | 파일 없이 수동 입력만으로도 생성 가능")
@@ -230,7 +272,7 @@ with tab_input:
                 with st.spinner("📖 시험지 문항별 분석 중 (Gemini Vision)..."):
                     try:
                         genai.configure(api_key=gemini_key)
-                        model = genai.GenerativeModel('gemini-2.5-flash')
+                        model = genai.GenerativeModel('gemini-2.0-flash')
                         
                         content = ["""이 수학 시험지를 꼼꼼히 분석하세요.
 아래 항목을 **한국어**로 정확하게 파악하여 서술하세요:
@@ -263,14 +305,16 @@ with tab_input:
             memo=memo, ai_mode=ai_mode, gemini_key=gemini_key,
             files_data=files_data, exam_analysis=exam_analysis,
         )
-        st.success("✅ 완료! '📋 성적표 미리보기 & 출력' 탭을 클릭하세요.")
+        st.session_state["active_tab"] = 1
+        st.success("✅ 완료! 상단의 '📋 성적표 미리보기 & 출력' 버튼을 클릭하거나 자동으로 이동합니다.")
+        st.rerun()
 
 # ═══════════════════════════════════════════════════════
-# TAB 2: 미리보기
+# 2. 미리보기 화면
 # ═══════════════════════════════════════════════════════
-with tab_preview:
+else:
     if "report_data" not in st.session_state:
-        st.info("✏️ '성적 입력' 탭에서 데이터를 입력하고 '성적표 생성하기'를 눌러주세요.")
+        st.info("✏️ '성적 입력' 단계에서 데이터를 입력하고 '성적표 생성하기'를 눌러주세요.")
         st.stop()
 
     d = st.session_state["report_data"]
@@ -318,7 +362,7 @@ with tab_preview:
     def gemini_ai_comment(d):
         try:
             genai.configure(api_key=d["gemini_key"])
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            model = genai.GenerativeModel('gemini-2.0-flash')
             
             metrics_str="\n".join(f"  - {k}: {v}점" for k,v in d["metrics"].items())
             exam_section = ""
@@ -532,13 +576,39 @@ with tab_preview:
         exam_section_html=f'<div style="margin:20px 0;padding:16px 20px;background:#FAFBFE;border-left:4px solid {GOLD};border-radius:0 8px 8px 0"><div style="font-size:11pt;font-weight:800;color:{CHARCOAL};margin-bottom:10px">📖 시험지 문항별 분석 결과</div><div style="font-size:10.5pt;line-height:1.9;color:#444;white-space:pre-wrap">{d["exam_analysis"]}</div></div>' if d.get("exam_analysis") else ""
         seal_svg=f'<svg width="88" height="88" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg"><circle cx="44" cy="44" r="42" fill="none" stroke="{GOLD}" stroke-width="2.5" stroke-dasharray="5 3"/><circle cx="44" cy="44" r="34" fill="none" stroke="{GOLD}" stroke-width="1.2"/><text x="44" y="36" text-anchor="middle" font-family="serif" font-size="9" fill="{GOLD}" font-weight="bold">{d["academy_name"][:4]}</text><text x="44" y="50" text-anchor="middle" font-family="serif" font-size="9" fill="{GOLD}" font-weight="bold">성적 확인</text><text x="44" y="62" text-anchor="middle" font-family="serif" font-size="8" fill="{GOLD}">CERTIFIED</text></svg>'
 
-        # [수정] 출력용 HTML 내 모든 '학생' -> '원생' 일괄 적용
+        # [수정] 출력용 HTML 내 모든 '학생' -> '원생' 일괄 적용 및 디자인 입히기
         return f"""<!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script><style>
+<html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Nato+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script><style>
 *{{box-sizing:border-box;margin:0;padding:0}} body{{font-family:'Noto Sans KR',sans-serif;background:{body_bg};padding:20px}} @media print{{ body{{background:white!important;padding:0!important}} .no-print{{display:none!important}} @page{{size:A4 portrait;margin:12mm}} .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:4px solid {GOLD}!important;}} }}
-.page{{width:210mm;min-height:296mm;background:white;margin:{page_margin};padding:10mm 14mm 20mm;box-shadow:{page_box_shadow};page-break-after:always;position:relative;border-top:5px solid {GOLD};}} .hdr{{background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});color:white;border-radius:8px;padding:12px 18px;margin-bottom:12px;border-left:4px solid {GOLD};display:flex;justify-content:space-between;align-items:center;}}
-.hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}} .hdr-left .ti{{font-size:22pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px}} .hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}} .hdr-grade{{text-align:center;background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;border:1px solid {GOLD}55;min-width:70px;flex-shrink:0;margin-left:12px}} .hdr-grade .gvl{{font-size:16pt;font-weight:900;color:{GOLD}}}
-.sec{{font-size:10.5pt;font-weight:800;color:{CHARCOAL};border-left:3px solid {GOLD};padding-left:9px;font-family:'Noto Serif KR'}}
+.page{{
+    width:210mm;min-height:296mm;background:white;margin:{page_margin};padding:10mm 14mm 20mm;
+    box-shadow:{page_box_shadow};page-break-after:always;position:relative;
+    border-top:8.0px solid {GOLD};
+    background-image: radial-gradient(circle at 50% 50%, rgba(201,168,76,0.06) 0%, rgba(255,255,255,0) 70%);
+    z-index: 1;
+}}
+.page::before {{
+    content: "";
+    position: absolute;
+    top: 25%; left: 15%; right: 15%; bottom: 25%;
+    background-image: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="80" fill="none" stroke="%23C9A84C" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.1"/><text x="100" y="105" text-anchor="middle" font-family="serif" font-size="22" fill="%23C9A84C" font-weight="bold" opacity="0.15">미래학원 PRESTIGE</text></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: -1;
+    pointer-events: none;
+}}
+.hdr{{
+    background:linear-gradient(135deg,{CHARCOAL},{CHARCOAL2});
+    color:white;border-radius:8px;padding:16px 22px;margin-bottom:15px;
+    border-left:5px solid {GOLD};
+    border-right:1px solid rgba(201,168,76,0.3);
+    border-bottom:1px solid rgba(201,168,76,0.3);
+    border-top:1px solid rgba(201,168,76,0.3);
+    display:flex;justify-content:space-between;align-items:center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}}
+.hdr-left .ac{{font-size:14pt;font-weight:800;color:{GOLD2};letter-spacing:1px;margin-bottom:4px}} .hdr-left .ti{{font-size:24pt;font-weight:900;font-family:'Noto Serif KR';margin-bottom:4px;text-shadow: 1px 1px 2px rgba(0,0,0,0.5);}} .hdr-left .sub{{font-size:12pt;color:{GOLD2};opacity:.9;margin-top:4px}} .hdr-grade{{text-align:center;background:rgba(201,168,76,0.15);border-radius:8px;padding:10px 16px;border:1px solid {GOLD};min-width:70px;flex-shrink:0;margin-left:12px}} .hdr-grade .gvl{{font-size:18pt;font-weight:900;color:{GOLD2};text-shadow: 0px 0px 4px rgba(201,168,76,0.6);}}
+.sec{{font-size:11.5pt;font-weight:800;color:{CHARCOAL};border-left:4px solid {GOLD};padding-left:10px;font-family:'Noto Serif KR'; background: linear-gradient(90deg, rgba(201,168,76,0.15) 0%, transparent 100%); padding-top:5px; padding-bottom:5px; border-radius:2px;}}
 .srow{{display:flex;gap:12px;margin-top:35px;margin-bottom:50px;}}
 .sbox{{flex:1;text-align:center;border-radius:12px;padding:12px 10px;border:2px solid {GOLD};background:#fff;box-shadow:0 6px 20px rgba(201,168,76,0.12);position:relative;}}
 .sbox.main{{background:#FCFAF4; border:2.5px solid #AF8E36; box-shadow:0 8px 25px rgba(175,142,54,0.25); transform:translateY(-2px);}}
@@ -573,7 +643,20 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
 <div class="ft"><span>{d['academy_name']} — 학원 공식 발행 문서</span><span>2 / 2</span></div></div></body></html>"""
 
     st.markdown("---")
-    st.markdown(f"#### 📤 출력 옵션 설정")
+    st.markdown("#### ⚙️ 리포트 관리 및 출력 설정")
+    
+    col_mod, col_home = st.columns(2)
+    with col_mod:
+        if st.button("✏️ 정보 수정하기 (입력 단계로)", use_container_width=True):
+            st.session_state["active_tab"] = 0
+            st.rerun()
+    with col_home:
+        if st.button("🏠 처음으로 (모든 데이터 초기화)", use_container_width=True):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
+
+    st.markdown("")
     output_format = st.radio("다운로드 할 파일 형식을 선택하세요:", ["HTML 파일 (PC용)", "이미지 파일 (모바일용)", "둘 다 생성"], index=0, horizontal=True)
     st.markdown("")
 
@@ -616,4 +699,13 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
                             os.remove(img_name)
                     except Exception as e:
                         st.error(f"이미지 생성 중 오류가 발생했습니다: {e}")
+
+    # ═══════════════════════════════════════════════════
+    # 3. 하단 컨트롤 버튼 (수정 및 처음으로)
+    # ═══════════════════════════════════════════════════
+    # st.markdown("---") # 위쪽에서 이미 선을 그음
+    # (하단 중복 버튼 제거됨)
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
 
