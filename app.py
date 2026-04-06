@@ -113,7 +113,7 @@ st.markdown(f"""
      border-bottom:4px solid {GOLD}; display:flex; align-items:center;">
   {logo_img_html}
   <span style="font-size:26px;font-weight:900;color:white;font-family:'Noto Serif KR'">
-    📊 학원 성적표 v2.1.2 (이미지 출력 지원)
+    📊 학원 성적표 v2.1.3 (배포 테스트 중...)
   </span>
   <span style="font-size:14px;color:{GOLD2};margin-left:auto;">{academy_name}</span>
 </div>""", unsafe_allow_html=True)
