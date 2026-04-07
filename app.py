@@ -1,12 +1,7 @@
 import streamlit as st
-import plotly.graph_objects as go
-import pandas as pd
 from datetime import datetime
-import base64, io
-import google.generativeai as genai
-from PIL import Image
-import os
-# from html2image import Html2Image # 가동성 확보를 위해 지연 임포트 사용
+import base64, io, os
+# Heavy imports moved to functions or lazy loading to speed up initial 'Oven' time
 
 # ═══════════════════════════════════════════════════════
 # 색상 팔레트 (프리미엄 차콜·골드 테마)
@@ -33,11 +28,13 @@ def grade_info(score):
 # 로고 처리 로직 (image_0.png 파일 필수)
 # ═══════════════════════════════════════════════════════
 def get_base64_from_image(image_path_or_file):
+    from PIL import Image
     buffered = io.BytesIO()
     if isinstance(image_path_or_file, str):
         with open(image_path_or_file, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode()
     else:
+        # PNG 형식으로 저장해도 JPEG 이미지를 처리할 수 있음 (PIL이 자동 변환)
         image_path_or_file.save(buffered, format="PNG")
         return base64.b64encode(buffered.getvalue()).decode()
 
@@ -47,11 +44,13 @@ logo_base64 = ""
 
 if os.path.exists(logo_path):
     try:
+        from PIL import Image
         academy_logo_img = Image.open(logo_path)
         logo_base64 = get_base64_from_image(academy_logo_img)
         logo_img_html = f'<img src="data:image/png;base64,{logo_base64}" style="height:45px; margin-right:20px; vertical-align:middle; border-radius:6px; background-color:white; padding:4px; box-shadow: 0px 2px 5px rgba(0,0,0,0.2);">'
     except Exception as e:
-        print(f"Logo load error: {e}")
+        # Streamlit 로드 시 에러 발생 시 로그에 남김
+        st.sidebar.error(f"Logo load error: {e}")
 
 # ═══════════════════════════════════════════════════════
 # 페이지 설정 & 전역 CSS
@@ -101,6 +100,22 @@ with st.sidebar:
     gemini_key = ""
     if "Gemini" in ai_mode:
         gemini_key = st.text_input("Google Gemini API Key", type="password", placeholder="AIza...")
+
+    # --- [시스템 진단] ---
+    with st.expander("🛠️ 시스템 진단 (Diagnostic)", expanded=False):
+        st.write(f"📁 워킹 디렉토리: `{os.getcwd()}`")
+        if os.path.exists(logo_path):
+            st.success(f"✅ 로고 파일 확인: `{logo_path}`")
+        else:
+            st.warning(f"❌ 로고 파일 없음: `{logo_path}`")
+        
+        try:
+            import pandas as pd
+            st.write(f"📦 Pandas v{pd.__version__}")
+        except: st.error("❌ Pandas 로드 실패")
+        
+        if st.button("시스템 리프레시 (Rerun)"):
+            st.rerun()
 
 # ═══════════════════════════════════════════════════════
 # 헤더
@@ -224,6 +239,7 @@ if st.session_state["active_tab"] == 0:
                     "원생 점수": float(student_score) if m_label == eval_month_str else 0.0,
                     "반 평균": float(class_avg) if m_label == eval_month_str else 0.0
                 })
+            import pandas as pd
             df_trend = pd.DataFrame(trend_data)
             
             edited_df = st.data_editor(
@@ -271,6 +287,8 @@ if st.session_state["active_tab"] == 0:
             if img_files:
                 with st.spinner("📖 시험지 문항별 분석 중 (Gemini Vision)..."):
                     try:
+                        import google.generativeai as genai
+                        from PIL import Image
                         genai.configure(api_key=gemini_key)
                         model = genai.GenerativeModel('gemini-2.0-flash')
                         
@@ -361,6 +379,8 @@ else:
 
     def gemini_ai_comment(d):
         try:
+            import google.generativeai as genai
+            from PIL import Image
             genai.configure(api_key=d["gemini_key"])
             model = genai.GenerativeModel('gemini-2.0-flash')
             
@@ -409,6 +429,7 @@ else:
     # 차트 함수
     # ═══════════════════════════════════════════════════
     def make_radar(d):
+        import plotly.graph_objects as go
         cats = list(d["metrics"].keys())
         vals = list(d["metrics"].values())
         cats_r=cats+[cats[0]]; vals_r=vals+[vals[0]]
@@ -428,6 +449,7 @@ else:
         return fig
 
     def make_trend(d):
+        import plotly.graph_objects as go
         labels, scores, avgs = d["q_labels"], d["q_scores"], d["q_avgs"]
         fig = go.Figure()
         fig.add_trace(go.Bar(x=labels, y=scores, name="원생 점수", marker_color=GOLD, text=[f"<b>{s:.1f}</b>" if s is not None else "" for s in scores], textposition="outside", textfont=dict(size=12, color=GOLD)))
@@ -578,7 +600,7 @@ else:
 
         # [수정] 출력용 HTML 내 모든 '학생' -> '원생' 일괄 적용 및 디자인 입히기
         return f"""<!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Nato+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script><style>
+<html lang="ko"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script><style>
 *{{box-sizing:border-box;margin:0;padding:0}} body{{font-family:'Noto Sans KR',sans-serif;background:{body_bg};padding:20px}} @media print{{ body{{background:white!important;padding:0!important}} .no-print{{display:none!important}} @page{{size:A4 portrait;margin:12mm}} .page{{box-shadow:none!important;margin:0!important;border-radius:0!important;width:100%!important;min-height:auto!important;padding:0!important;border-top:4px solid {GOLD}!important;}} }}
 .page{{
     width:210mm;min-height:296mm;background:white;margin:{page_margin};padding:10mm 14mm 20mm;

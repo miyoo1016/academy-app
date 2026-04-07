@@ -1,6 +1,7 @@
-streamlit
+streamlit>=1.31.0
 plotly
 pandas
-google-generativeai
+google-generativeai>=0.4.0
 Pillow
 html2image
+# chromium is handled by packages.txt
