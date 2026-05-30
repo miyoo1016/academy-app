@@ -7,7 +7,7 @@ import base64, io, os
 # Google Sheets 연동 헬퍼
 # ═══════════════════════════════════════════════════════
 SHEET_COLS = [
-    "created_at", "teacher_name", "student_name", "grade",
+    "created_at", "year", "teacher_name", "student_name", "grade",
     "eval_month", "test_name", "test_round", "score", "class_avg",
     "total_students", "rank", "weak_points", "ai_comment", "memo",
 ]
@@ -32,17 +32,69 @@ def get_gsheet():
         st.warning(f"⚠️ Google Sheets 연결 실패: {e}")
         return None
 
+def upgrade_sheet_if_needed(ws):
+    """기존 시트에 year 컬럼이 없으면 A:O 스키마로 전체 마이그레이션 수행"""
+    try:
+        data = ws.get("A:O")
+        if not data:
+            return
+        header = [str(c).strip() for c in data[0]]
+        if "year" in header:
+            return  # 이미 업그레이드 됨
+            
+        # 마이그레이션 진행
+        new_rows = [SHEET_COLS]
+        for raw_row in data[1:]:
+            if len(raw_row) == 1 and "\t" in raw_row[0]:
+                raw_row = raw_row[0].split("\t")
+            padded = raw_row + [""] * (len(header) - len(raw_row))
+            record = dict(zip(header, padded))
+            
+            row_year = str(record.get("year", "")).strip()
+            if not row_year:
+                created = str(record.get("created_at", "")).strip()
+                if created and "-" in created:
+                    row_year = created.split("-")[0]
+                else:
+                    try:
+                        from zoneinfo import ZoneInfo
+                        row_year = str(datetime.now(ZoneInfo("Asia/Seoul")).year)
+                    except Exception:
+                        row_year = str(datetime.now().year)
+            record["year"] = row_year
+            
+            new_row = [str(record.get(col, "")) for col in SHEET_COLS]
+            new_rows.append(new_row)
+            
+        ws.batch_clear(["A:O"])
+        ws.update(new_rows, range_name="A1", value_input_option="USER_ENTERED")
+    except Exception as e:
+        print(f"Migration failed: {e}")
+
 def save_to_sheet(d: dict, ai_comment: str) -> bool:
-    """report_data dict -> scores 시트 A:N 범위에 한 행 append. 실패 시 False 반환."""
+    """report_data dict -> scores 시트 A:O 범위에 한 행 append. 실패 시 False 반환."""
     ws = get_gsheet()
     if ws is None:
         return False
     try:
+        # 저장 전 스키마 확인
+        data = ws.get("A1:O1")
+        header = [str(c).strip() for c in data[0]] if data else []
+        if header and "year" not in header:
+            upgrade_sheet_if_needed(ws)
+
         metrics = d.get("metrics", {})
         weak_keys = [k for k, v in metrics.items() if v < 75]
-        # 14개 컬럼 순서 고정 리스트 (SHEET_COLS 순서와 1:1 대응)
+        # 15개 컬럼 순서 고정 리스트 (SHEET_COLS 순서와 1:1 대응)
+        try:
+            from zoneinfo import ZoneInfo
+            now_str = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
         row_values = [
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            now_str,
+            str(d.get("report_year", "")),
             str(d.get("teacher_name", "")),
             str(d.get("student_name", "")),
             str(d.get("student_grade", "")),
@@ -91,16 +143,16 @@ def _parse_month(val: str) -> int:
 
 
 def sort_scores_sheet(ws) -> None:
-    """scores 시트 A:N 범위의 2행 이하 데이터만 6단계 기준으로 정렬 후 A2부터 덮어씀."""
+    """scores 시트 A:O 범위의 2행 이하 데이터만 7단계 기준으로 정렬 후 A2부터 덮어씀."""
     try:
-        data = ws.get("A:N")
+        data = ws.get("A:O")
         if not data or len(data) < 2:
             return
         header = data[0]
         rows = data[1:]
 
-        # 각 행을 정확히 14컬럼으로 패딩/절단
-        N = 14
+        # 각 행을 정확히 15컬럼으로 패딩/절단
+        N = 15
         padded_rows = [
             (r + [""] * N)[:N]
             for r in rows
@@ -111,7 +163,9 @@ def sort_scores_sheet(ws) -> None:
         IDX = {col: i for i, col in enumerate(SHEET_COLS)}
 
         def sort_key(r):
+            y = str(r[IDX["year"]]).strip()
             return (
+                y,
                 str(r[IDX["student_name"]]).strip().lower(),
                 str(r[IDX["grade"]]).strip().lower(),
                 _parse_month(r[IDX["eval_month"]]),
@@ -126,35 +180,43 @@ def sort_scores_sheet(ws) -> None:
         # 기존 데이터 영역 클리어 (헤더 제외)
         last_row = 1 + max(len(data) - 1, len(padded_rows))
         if last_row >= 2:
-            ws.batch_clear([f"A2:N{last_row}"])
+            ws.batch_clear([f"A2:O{last_row}"])
 
         # 정렬된 데이터 A2부터 쓰기
         if padded_rows:
             ws.update(
                 padded_rows,
-                range_name=f"A2:N{1 + len(padded_rows)}",
+                range_name=f"A2:O{1 + len(padded_rows)}",
                 value_input_option="USER_ENTERED",
             )
     except Exception:
         pass   # 정렬 실패는 저장 성공에 영향 없음
 
 
-def load_history(student_name: str, grade: str = "") -> list[dict]:
+def load_history(student_name: str, grade: str = "", year: str = "") -> list[dict]:
     """
-    scores 시트 A:N에서 student_name (+grade) 필터링 후 행 반환.
-    grade가 주어지면 student_name+grade 복합키로 동명이인 구분.
+    scores 시트 A:O에서 student_name (+grade) (+year) 필터링 후 행 반환.
     실패 시 빈 리스트 반환.
     """
     ws = get_gsheet()
     if ws is None:
         return []
     try:
-        data = ws.get("A:N")
+        data = ws.get("A:O")
+        if not data:
+            return []
+            
+        header = [str(c).strip() for c in data[0]]
+        if "year" not in header:
+            upgrade_sheet_if_needed(ws)
+            data = ws.get("A:O")
+            
         if not data or len(data) < 2:
             return []
         
         name_clean  = student_name.replace(" ", "").strip()
         grade_clean = grade.replace(" ", "").strip()
+        year_clean  = year.strip()
         result = []
         for raw_row in data[1:]:
             # 만약 시트 오류로 데이터가 한 셀에 탭(\t)으로 뭉쳐 들어온 경우 분리
@@ -166,12 +228,18 @@ def load_history(student_name: str, grade: str = "") -> list[dict]:
             
             row_name  = str(record.get("student_name", "")).replace(" ", "").strip()
             row_grade = str(record.get("grade", "")).replace(" ", "").strip()
+            row_year  = str(record.get("year", "")).strip()
+            
             # 이름 불일치면 건너뜀
             if row_name != name_clean:
                 continue
             # grade가 주어졌고 둘 다 비어있지 않으면 학년도 일치해야 함
             if grade_clean and row_grade and row_grade != grade_clean:
                 continue
+            # 연도가 주어졌으면 연도도 일치해야 함
+            if year_clean and row_year != year_clean:
+                continue
+                
             result.append(record)
         return result
     except Exception:
@@ -260,6 +328,19 @@ with st.sidebar:
     st.text_input("학원명", value=academy_name, disabled=True)
     teacher_name   = "수학 선생님"
     st.text_input("담당 선생님", value=teacher_name, disabled=True)
+    
+    try:
+        from zoneinfo import ZoneInfo
+        current_year = datetime.now(ZoneInfo("Asia/Seoul")).year
+    except Exception:
+        current_year = datetime.now().year
+        
+    START_YEAR = 2026
+    allowed_years = [str(y) for y in range(START_YEAR, max(START_YEAR, current_year) + 2)]
+    default_year = str(max(START_YEAR, current_year))
+    default_index = allowed_years.index(default_year) if default_year in allowed_years else 0
+    
+    report_year   = st.selectbox("평가 연도", allowed_years, index=default_index)
     
     allowed_months = ["3월", "4월", "5월", "6월", "9월", "10월", "11-12월"]
     report_month   = st.selectbox("평가 월", allowed_months, index=0)
@@ -409,11 +490,11 @@ if st.session_state["active_tab"] == 0:
             eval_month_str = report_month
 
             # ── Google Sheets 과거 성적 로드 ─────────────────────────────────────────
-            # 원생 이름 또는 학년이 바뀌면 캐시 무효화 후 재조회
-            _cache_key = f"{student_name}||{student_grade}"
+            # 원생 이름 또는 학년, 연도가 바뀌면 캐시 무효화 후 재조회
+            _cache_key = f"{student_name}||{student_grade}||{report_year}"
             if st.session_state.get("_history_key") != _cache_key:
                 st.session_state["_history_key"] = _cache_key
-                st.session_state["_history_rows"] = load_history(student_name, student_grade)
+                st.session_state["_history_rows"] = load_history(student_name, student_grade, report_year)
 
             history_rows = st.session_state.get("_history_rows", [])
 
@@ -547,7 +628,7 @@ if st.session_state["active_tab"] == 0:
 
         st.session_state["report_data"] = dict(
             academy_name=academy_name, teacher_name=teacher_name,
-            report_month=report_month,
+            report_year=report_year, report_month=report_month,
             student_name=student_name, student_grade=student_grade,
             score1=float(score1), score2=float(score2),
             avg1=float(avg1), avg2=float(avg2),
