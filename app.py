@@ -4,6 +4,182 @@ import base64, io, os
 # Heavy imports moved to functions or lazy loading to speed up initial 'Oven' time
 
 # ═══════════════════════════════════════════════════════
+# Google Sheets 연동 헬퍼
+# ═══════════════════════════════════════════════════════
+SHEET_COLS = [
+    "created_at", "teacher_name", "student_name", "grade",
+    "eval_month", "test_name", "test_round", "score", "class_avg",
+    "total_students", "rank", "weak_points", "ai_comment", "memo",
+]
+
+@st.cache_resource(show_spinner=False)
+def get_gsheet():
+    """Google Sheets 커넥션을 캐싱해서 반환. 인증 실패 시 None 반환."""
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = Credentials.from_service_account_info(
+            dict(st.secrets["gcp_service_account"]), scopes=scopes
+        )
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(st.secrets["GOOGLE_SHEET_ID"])
+        return sh.worksheet("scores")
+    except Exception as e:
+        st.warning(f"⚠️ Google Sheets 연결 실패: {e}")
+        return None
+
+def save_to_sheet(d: dict, ai_comment: str) -> bool:
+    """report_data dict -> scores 시트 A:N 범위에 한 행 append. 실패 시 False 반환."""
+    ws = get_gsheet()
+    if ws is None:
+        return False
+    try:
+        metrics = d.get("metrics", {})
+        weak_keys = [k for k, v in metrics.items() if v < 75]
+        # 14개 컬럼 순서 고정 리스트 (SHEET_COLS 순서와 1:1 대응)
+        row_values = [
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            str(d.get("teacher_name", "")),
+            str(d.get("student_name", "")),
+            str(d.get("student_grade", "")),
+            str(d.get("report_month", "")),
+            str(d.get("subject", "")),
+            "",
+            d.get("student_score", ""),
+            d.get("class_avg", ""),
+            "",
+            "",
+            ", ".join(weak_keys),
+            str(ai_comment or "")[:500],
+            str(d.get("memo", "")),
+        ]
+        # table_range="A1" 로 항상 A열 기준 아래 방향에만 추가
+        ws.append_row(
+            row_values,
+            value_input_option="USER_ENTERED",
+            table_range="A1",
+        )
+        sort_scores_sheet(ws)   # 저장 후 즉시 정렬
+        return True
+    except Exception as e:
+        st.error(f"저장 실패: {e}")
+        return False
+
+def _parse_month(val: str) -> int:
+    """eval_month 값을 정수 월로 변환. 파싱 실패 시 0 반환."""
+    v = str(val).strip()
+    # "2026-03" 형태
+    if "-" in v:
+        parts = v.split("-")
+        for p in parts:
+            try:
+                n = int(p)
+                if 1 <= n <= 12:
+                    return n
+            except ValueError:
+                pass
+    # "3월" / "03월" 형태
+    v_num = v.replace("월", "").replace("월", "").strip()
+    try:
+        return int(v_num)
+    except ValueError:
+        return 0
+
+
+def sort_scores_sheet(ws) -> None:
+    """scores 시트 A:N 범위의 2행 이하 데이터만 6단계 기준으로 정렬 후 A2부터 덮어씀."""
+    try:
+        data = ws.get("A:N")
+        if not data or len(data) < 2:
+            return
+        header = data[0]
+        rows = data[1:]
+
+        # 각 행을 정확히 14컬럼으로 패딩/절단
+        N = 14
+        padded_rows = [
+            (r + [""] * N)[:N]
+            for r in rows
+            if any(str(c).strip() for c in r)   # 완전 빈 행 제외
+        ]
+
+        # 컬럼 인덱스 (SHEET_COLS 순서)
+        IDX = {col: i for i, col in enumerate(SHEET_COLS)}
+
+        def sort_key(r):
+            return (
+                str(r[IDX["student_name"]]).strip().lower(),
+                str(r[IDX["grade"]]).strip().lower(),
+                _parse_month(r[IDX["eval_month"]]),
+                str(r[IDX["test_name"]]).strip().lower(),
+                int(str(r[IDX["test_round"]]).strip() or 0)
+                if str(r[IDX["test_round"]]).strip().isdigit() else 0,
+                str(r[IDX["created_at"]]).strip(),
+            )
+
+        padded_rows.sort(key=sort_key)
+
+        # 기존 데이터 영역 클리어 (헤더 제외)
+        last_row = 1 + max(len(data) - 1, len(padded_rows))
+        if last_row >= 2:
+            ws.batch_clear([f"A2:N{last_row}"])
+
+        # 정렬된 데이터 A2부터 쓰기
+        if padded_rows:
+            ws.update(
+                padded_rows,
+                range_name=f"A2:N{1 + len(padded_rows)}",
+                value_input_option="USER_ENTERED",
+            )
+    except Exception:
+        pass   # 정렬 실패는 저장 성공에 영향 없음
+
+
+def load_history(student_name: str, grade: str = "") -> list[dict]:
+    """
+    scores 시트 A:N에서 student_name (+grade) 필터링 후 행 반환.
+    grade가 주어지면 student_name+grade 복합키로 동명이인 구분.
+    실패 시 빈 리스트 반환.
+    """
+    ws = get_gsheet()
+    if ws is None:
+        return []
+    try:
+        data = ws.get("A:N")
+        if not data or len(data) < 2:
+            return []
+        
+        name_clean  = student_name.replace(" ", "").strip()
+        grade_clean = grade.replace(" ", "").strip()
+        result = []
+        for raw_row in data[1:]:
+            # 만약 시트 오류로 데이터가 한 셀에 탭(\t)으로 뭉쳐 들어온 경우 분리
+            if len(raw_row) == 1 and "\t" in raw_row[0]:
+                raw_row = raw_row[0].split("\t")
+                
+            padded = raw_row + [""] * (len(SHEET_COLS) - len(raw_row))
+            record = dict(zip(SHEET_COLS, padded))
+            
+            row_name  = str(record.get("student_name", "")).replace(" ", "").strip()
+            row_grade = str(record.get("grade", "")).replace(" ", "").strip()
+            # 이름 불일치면 건너뜀
+            if row_name != name_clean:
+                continue
+            # grade가 주어졌고 둘 다 비어있지 않으면 학년도 일치해야 함
+            if grade_clean and row_grade and row_grade != grade_clean:
+                continue
+            result.append(record)
+        return result
+    except Exception:
+        return []
+
+
+
+# ═══════════════════════════════════════════════════════
 # 색상 팔레트 (프리미엄 차콜·골드 테마)
 # ═══════════════════════════════════════════════════════
 CHARCOAL  = "#36454F"
@@ -232,20 +408,79 @@ if st.session_state["active_tab"] == 0:
             # 평가 월 기준으로 기본값 설정 (시스템 날짜 대신 사이드바 선택값 사용)
             eval_month_str = report_month
 
+            # ── Google Sheets 과거 성적 로드 ─────────────────────────────────────────
+            # 원생 이름 또는 학년이 바뀌면 캐시 무효화 후 재조회
+            _cache_key = f"{student_name}||{student_grade}"
+            if st.session_state.get("_history_key") != _cache_key:
+                st.session_state["_history_key"] = _cache_key
+                st.session_state["_history_rows"] = load_history(student_name, student_grade)
+
+            history_rows = st.session_state.get("_history_rows", [])
+
+            # 월별 매핑: _parse_month로 정규화 후 allowed_months 레이블 기준으로 변환
+            # allowed_months 각 레이블의 숫자 월을 미리 추출해두었다가 매핑
+            _month_label_map = {_parse_month(m): m for m in allowed_months}  # {3: "3월", 4: "4월", ...}
+            history_map: dict[str, tuple[float, float]] = {}
+            for hr in history_rows:
+                raw_month = str(hr.get("eval_month", "")).strip()
+                m_num = _parse_month(raw_month)          # 숫자 월로 정규화
+                m_label = _month_label_map.get(m_num)   # ex) 3 -> "3월"
+                if not m_label:
+                    continue                              # allowed_months에 없는 월 무시
+                try:
+                    s = float(hr.get("score", 0) or 0)
+                    a = float(hr.get("class_avg", 0) or 0)
+                    if s > 0:
+                        # 같은 월에 여러 기록 있으면 가장 작성 날짜(created_at) 기준 최신 값 사용
+                        if m_label not in history_map:
+                            history_map[m_label] = (s, a)
+                        else:
+                            existing_ts = max(
+                                str(x.get("created_at", ""))
+                                for x in history_rows
+                                if _parse_month(str(x.get("eval_month", ""))) == m_num
+                            )
+                            new_ts = str(hr.get("created_at", ""))
+                            if new_ts >= existing_ts:
+                                history_map[m_label] = (s, a)
+                except (ValueError, TypeError):
+                    pass
+
             trend_data = []
             for m_label in allowed_months:
-                trend_data.append({
-                    "월": m_label,
-                    "원생 점수": float(student_score) if m_label == eval_month_str else 0.0,
-                    "반 평균": float(class_avg) if m_label == eval_month_str else 0.0
-                })
+                if m_label == eval_month_str:
+                    # 이번 달: 현재 입력값 우선 (사용자가 수정 중인 값을 덮어쓰지 않음)
+                    trend_data.append({
+                        "월": m_label,
+                        "원생 점수": float(student_score),
+                        "반 평균": float(class_avg),
+                    })
+                elif m_label in history_map:
+                    # 과거 달: Sheets 저장값 자동 반영
+                    h_score, h_avg = history_map[m_label]
+                    trend_data.append({"월": m_label, "원생 점수": h_score, "반 평균": h_avg})
+                else:
+                    trend_data.append({"월": m_label, "원생 점수": 0.0, "반 평균": 0.0})
+
+            if history_map:
+                loaded_months = sorted(history_map.keys(),
+                                       key=lambda m: _parse_month(m))
+                st.caption(
+                    f"📂 과거 데이터 자동 반영: {', '.join(loaded_months)} ({len(history_map)}개월)"
+                )
+
             import pandas as pd
             df_trend = pd.DataFrame(trend_data)
-            
+
+            import hashlib
+            trend_hash = hashlib.md5(str(trend_data).encode()).hexdigest()
+            # key에 캐시키+history 크기+데이터해시를 포함 → 원생/학년/데이터 변경 시 Streamlit이 위젯 강제 재생성
+            _editor_key = f"trend__{_cache_key}__{len(history_map)}__{trend_hash}"
             edited_df = st.data_editor(
                 df_trend,
                 hide_index=True,
                 width="stretch",
+                key=_editor_key,
                 column_config={
                     "월": st.column_config.TextColumn("월", disabled=True),
                     "원생 점수": st.column_config.NumberColumn("원생 점수", min_value=0.0, max_value=100.0, format="%.1f", step=0.5),
@@ -272,6 +507,7 @@ if st.session_state["active_tab"] == 0:
             st.markdown(f"#### <span style='color:{RED};'>💡 선생님의 메모 (출력에 매우 중요)</span>", unsafe_allow_html=True)
             st.caption("원생의 특이사항을 적어주시면, 결과지의 가장 마지막 항목으로 정렬되어 출력됩니다.")
             memo = st.text_area("", value="분수 나눗셈 역수 개념 정착 확인. 심화문제 3번 패턴 반복 오류 있음.", height=150, label_visibility="collapsed")
+
 
     st.markdown("")
     gen_btn = st.button("🚀 성적표 생성하기", width="stretch", type="primary")
@@ -678,9 +914,32 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
                 del st.session_state[key]
             st.rerun()
 
+    # ── Google Sheets 저장 버튼 ─────────────────────────────────
+    st.markdown("")
+    with st.container(border=True):
+        st.markdown(f"#### 💾 Google Sheets에 성적 저장")
+        st.caption("저장하면 같은 원생 이름으로 다음 달 성적 입력 시 월별 추이에 자동 반영됩니다.")
+        save_col, info_col = st.columns([1, 2])
+        with save_col:
+            if st.button("📊 Google Sheets에 저장", use_container_width=True, type="primary"):
+                with st.spinner("저장 중..."):
+                    ok = save_to_sheet(d, comment_text)
+                if ok:
+                    st.success(f"✅ {d['student_name']} 원생 {d['report_month']} 성적이 저장되었습니다!")
+                    # 히스토리 캐시 무효화 → 다음 입력 탭 로드 시 최신 데이터 반영
+                    st.session_state.pop("_history_key", None)
+                    st.session_state.pop("_history_rows", None)
+        with info_col:
+            st.info(
+                f"저장 대상: **{d['student_name']}** | {d['report_month']} | "
+                f"점수 {d['student_score']:.1f}점 | 반평균 {d['class_avg']:.1f}점"
+            )
+    # ────────────────────────────────────────────────────────────
+
     st.markdown("")
     output_format = st.radio("다운로드 할 파일 형식을 선택하세요:", ["HTML 파일 (PC용)", "이미지 파일 (모바일용)", "둘 다 생성"], index=0, horizontal=True)
     st.markdown("")
+
 
     # 1. HTML 생성
     html_out = build_html(d, comment_text, for_image=False)

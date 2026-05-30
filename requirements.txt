@@ -4,4 +4,6 @@ pandas
 google-generativeai>=0.4.0
 Pillow
 html2image
+gspread>=6.0.0
+google-auth>=2.0.0
 # chromium is handled by packages.txt
