@@ -72,7 +72,7 @@ def upgrade_sheet_if_needed(ws):
         print(f"Migration failed: {e}")
 
 def save_to_sheet(d: dict, ai_comment: str) -> bool:
-    """report_data dict -> scores 시트 A:O 범위에 한 행 append. 실패 시 False 반환."""
+    """report_data dict -> scores 시트 A:O 범위에 저장. 중복 시 업데이트, 없으면 append. 실패 시 False 반환."""
     ws = get_gsheet()
     if ws is None:
         return False
@@ -92,6 +92,11 @@ def save_to_sheet(d: dict, ai_comment: str) -> bool:
         except Exception:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
+        target_year = str(d.get("report_year", "")).strip()
+        target_name = str(d.get("student_name", "")).strip().replace(" ", "")
+        target_grade = str(d.get("student_grade", "")).strip().replace(" ", "")
+        target_month = _parse_month(d.get("report_month", ""))
+            
         row_values = [
             now_str,
             str(d.get("report_year", "")),
@@ -109,12 +114,35 @@ def save_to_sheet(d: dict, ai_comment: str) -> bool:
             str(ai_comment or "")[:500],
             str(d.get("memo", "")),
         ]
-        # table_range="A1" 로 항상 A열 기준 아래 방향에만 추가
-        ws.append_row(
-            row_values,
-            value_input_option="USER_ENTERED",
-            table_range="A1",
-        )
+        
+        # 전체 데이터를 가져와서 중복 검색 (가장 첫 번째 매칭 기준)
+        all_data = ws.get("A:O")
+        match_idx = -1
+        if all_data and len(all_data) > 1:
+            for i, raw_row in enumerate(all_data[1:]):
+                if len(raw_row) == 1 and "\t" in raw_row[0]:
+                    raw_row = raw_row[0].split("\t")
+                padded = (raw_row + [""] * 15)[:15]
+                
+                row_year = str(padded[1]).strip()
+                row_name = str(padded[3]).replace(" ", "").strip()
+                row_grade = str(padded[4]).replace(" ", "").strip()
+                row_month = _parse_month(padded[5])
+                
+                if row_year == target_year and row_name == target_name and row_grade == target_grade and row_month == target_month:
+                    match_idx = i + 2 # 헤더가 1행이므로 +2
+                    break
+                    
+        if match_idx > 0:
+            ws.update([row_values], range_name=f"A{match_idx}:O{match_idx}", value_input_option="USER_ENTERED")
+        else:
+            ws.append_row(
+                row_values,
+                value_input_option="USER_ENTERED",
+                table_range="A1",
+            )
+            
+        dedupe_scores_sheet(ws)
         sort_scores_sheet(ws)   # 저장 후 즉시 정렬
         return True
     except Exception as e:
@@ -141,6 +169,59 @@ def _parse_month(val: str) -> int:
     except ValueError:
         return 0
 
+
+def dedupe_scores_sheet(ws) -> None:
+    """scores 시트 A:O 범위에서 year+student_name+grade+eval_month 기준 중복이 있으면 created_at 최신 1건만 남김."""
+    try:
+        data = ws.get("A:O")
+        if not data or len(data) < 2:
+            return
+            
+        header = data[0]
+        rows = data[1:]
+        
+        N = 15
+        from collections import defaultdict
+        groups = defaultdict(list)
+        
+        for r in rows:
+            if any(str(c).strip() for c in r):
+                if len(r) == 1 and "\t" in r[0]:
+                    r = r[0].split("\t")
+                padded = (r + [""] * N)[:N]
+                
+                # Composite key
+                y = str(padded[1]).strip()
+                name = str(padded[3]).replace(" ", "").strip()
+                grade = str(padded[4]).replace(" ", "").strip()
+                month = _parse_month(padded[5])
+                
+                key = (y, name, grade, month)
+                groups[key].append(padded)
+                
+        deduped_rows = []
+        for key, group_rows in groups.items():
+            if len(group_rows) == 1:
+                deduped_rows.append(group_rows[0])
+            else:
+                # created_at (index 0) 기준 역순 정렬 (문자열 비교)
+                group_rows.sort(key=lambda x: str(x[0]).strip(), reverse=True)
+                deduped_rows.append(group_rows[0])
+                
+        if len(deduped_rows) < len(rows):
+            # 중복이 있었다면 덮어쓰기
+            last_row = 1 + max(len(rows), len(deduped_rows))
+            if last_row >= 2:
+                ws.batch_clear([f"A2:O{last_row}"])
+                
+            if deduped_rows:
+                ws.update(
+                    deduped_rows,
+                    range_name=f"A2:O{1 + len(deduped_rows)}",
+                    value_input_option="USER_ENTERED",
+                )
+    except Exception as e:
+        print(f"Dedupe failed: {e}")
 
 def sort_scores_sheet(ws) -> None:
     """scores 시트 A:O 범위의 2행 이하 데이터만 7단계 기준으로 정렬 후 A2부터 덮어씀."""
@@ -241,7 +322,23 @@ def load_history(student_name: str, grade: str = "", year: str = "") -> list[dic
                 continue
                 
             result.append(record)
-        return result
+            
+        # 같은 eval_month 에 대해 created_at 최신 1건만 남김
+        from collections import defaultdict
+        month_map = defaultdict(list)
+        for r in result:
+            m = _parse_month(r.get("eval_month", ""))
+            month_map[m].append(r)
+            
+        final_result = []
+        for m, rows in month_map.items():
+            if len(rows) == 1:
+                final_result.append(rows[0])
+            else:
+                rows.sort(key=lambda x: str(x.get("created_at", "")).strip(), reverse=True)
+                final_result.append(rows[0])
+                
+        return final_result
     except Exception:
         return []
 
