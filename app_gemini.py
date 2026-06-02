@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime
-import base64, io, os
+import base64, io, os, re
 # Heavy imports moved to functions or lazy loading to speed up initial 'Oven' time
 
 # ═══════════════════════════════════════════════════════
@@ -94,7 +94,7 @@ def save_to_sheet(d: dict, ai_comment: str) -> bool:
             
         target_year = str(d.get("report_year", "")).strip()
         target_name = str(d.get("student_name", "")).strip().replace(" ", "")
-        target_grade = str(d.get("student_grade", "")).strip().replace(" ", "")
+        target_grade = normalize_grade_for_match(d.get("student_grade", ""))
         target_month = _parse_month(d.get("report_month", ""))
             
         row_values = [
@@ -126,7 +126,7 @@ def save_to_sheet(d: dict, ai_comment: str) -> bool:
                 
                 row_year = str(padded[1]).strip()
                 row_name = str(padded[3]).replace(" ", "").strip()
-                row_grade = str(padded[4]).replace(" ", "").strip()
+                row_grade = normalize_grade_for_match(padded[4])
                 row_month = _parse_month(padded[5])
                 
                 if row_year == target_year and row_name == target_name and row_grade == target_grade and row_month == target_month:
@@ -170,6 +170,26 @@ def _parse_month(val: str) -> int:
         return 0
 
 
+def normalize_grade_for_match(raw) -> str:
+    """학년 비교용 정규화. 원본 grade 저장값은 변경하지 않는다."""
+    text = str(raw or "").strip().replace(" ", "")
+    if not text:
+        return ""
+
+    compact = text.replace("초등학교", "초등").replace("초등", "초")
+    compact = compact.replace("학년", "")
+    match = re.fullmatch(r"초?([1-6])", compact)
+    if match:
+        return f"초등{match.group(1)}학년"
+
+    middle = text.replace("중학교", "중").replace("중등", "중").replace("학년", "")
+    match = re.fullmatch(r"중([1-3])", middle)
+    if match:
+        return f"중학교{match.group(1)}학년"
+
+    return text.lower()
+
+
 def dedupe_scores_sheet(ws) -> None:
     """scores 시트 A:O 범위에서 year+student_name+grade+eval_month 기준 중복이 있으면 created_at 최신 1건만 남김."""
     try:
@@ -193,7 +213,7 @@ def dedupe_scores_sheet(ws) -> None:
                 # Composite key
                 y = str(padded[1]).strip()
                 name = str(padded[3]).replace(" ", "").strip()
-                grade = str(padded[4]).replace(" ", "").strip()
+                grade = normalize_grade_for_match(padded[4])
                 month = _parse_month(padded[5])
                 
                 key = (y, name, grade, month)
@@ -248,7 +268,7 @@ def sort_scores_sheet(ws) -> None:
             return (
                 y,
                 str(r[IDX["student_name"]]).strip().lower(),
-                str(r[IDX["grade"]]).strip().lower(),
+                normalize_grade_for_match(r[IDX["grade"]]),
                 _parse_month(r[IDX["eval_month"]]),
                 str(r[IDX["test_name"]]).strip().lower(),
                 int(str(r[IDX["test_round"]]).strip() or 0)
@@ -296,7 +316,7 @@ def load_history(student_name: str, grade: str = "", year: str = "") -> list[dic
             return []
         
         name_clean  = student_name.replace(" ", "").strip()
-        grade_clean = grade.replace(" ", "").strip()
+        grade_clean = normalize_grade_for_match(grade)
         year_clean  = year.strip()
         result = []
         for raw_row in data[1:]:
@@ -308,7 +328,7 @@ def load_history(student_name: str, grade: str = "", year: str = "") -> list[dic
             record = dict(zip(SHEET_COLS, padded))
             
             row_name  = str(record.get("student_name", "")).replace(" ", "").strip()
-            row_grade = str(record.get("grade", "")).replace(" ", "").strip()
+            row_grade = normalize_grade_for_match(record.get("grade", ""))
             row_year  = str(record.get("year", "")).strip()
             
             # 이름 불일치면 건너뜀
@@ -1167,4 +1187,3 @@ table.mt{{width:100%;border-collapse:collapse;background:#FAFBFE;border:1px soli
     st.markdown("<br><br>", unsafe_allow_html=True)
 
     st.markdown("<br><br>", unsafe_allow_html=True)
-
