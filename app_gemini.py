@@ -886,15 +886,15 @@ else:
         import plotly.graph_objects as go
         labels, scores, avgs = d["q_labels"], d["q_scores"], d["q_avgs"]
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=labels, y=scores, name="원생 점수", marker_color=GOLD, text=[f"<b>{s:.1f}</b>" if s is not None else "" for s in scores], textposition="outside", textfont=dict(size=12, color=GOLD)))
-        fig.add_trace(go.Bar(x=labels, y=avgs, name="반 평균", marker_color=SILVER, text=[f"{a:.1f}" if a is not None else "" for a in avgs], textposition="outside", textfont=dict(size=11, color=SILVER)))
+        fig.add_trace(go.Bar(x=labels, y=scores, name="원생 점수", marker_color=GOLD, text=[f"<b>{s:.1f}</b>" if s is not None else "" for s in scores], textposition="outside", textfont=dict(size=12, color=GOLD), cliponaxis=False))
+        fig.add_trace(go.Bar(x=labels, y=avgs, name="반 평균", marker_color=SILVER, text=[f"{a:.1f}" if a is not None else "" for a in avgs], textposition="outside", textfont=dict(size=11, color=SILVER), cliponaxis=False))
         fig.update_layout(
             barmode='group',
             bargap=0.3,
             bargroupgap=0.15,
             height=300, margin=dict(l=55, r=20, t=50, b=60),
             paper_bgcolor="white", plot_bgcolor="white",
-            yaxis=dict(range=[0, 120], showgrid=True, gridcolor="#F2F4F8"),
+            yaxis=dict(range=[0, 115], showgrid=True, gridcolor="#F2F4F8"),
             xaxis=dict(type='category', categoryarray=labels),
             legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"),
             font=dict(family="NanumGothic, sans-serif")
