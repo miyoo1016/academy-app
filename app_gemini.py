@@ -892,11 +892,11 @@ else:
             barmode='group',
             bargap=0.3,
             bargroupgap=0.15,
-            height=300, margin=dict(l=55, r=20, t=50, b=60),
+            height=300, margin=dict(l=55, r=20, t=100, b=60),
             paper_bgcolor="white", plot_bgcolor="white",
-            yaxis=dict(range=[0, 115], showgrid=True, gridcolor="#F2F4F8"),
+            yaxis=dict(range=[0, 130], showgrid=True, gridcolor="#F2F4F8"),
             xaxis=dict(type='category', categoryarray=labels),
-            legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"),
+            legend=dict(orientation="h", y=1.22, yanchor="bottom", x=0.5, xanchor="center"),
             font=dict(family="NanumGothic, sans-serif")
         )
         return fig
